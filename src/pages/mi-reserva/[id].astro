@@ -1,0 +1,598 @@
+---
+// Requires two additions you don't have yet — see the bottom of this file
+// for exact code to paste:
+//   1. src/lib/api.js        -> updateBooking(id, data, token), cancelBooking(id, token)
+//   2. src/pages/api/bookings/[id].js  -> PATCH + DELETE proxy route
+//
+// Booking fields used below come directly from GET /bookings/:id in your
+// bookings.js: id, customer_id, tour_id, tour_date_id, tour_schedule_id,
+// quantity, number_of_children, number_of_babies, status, created_at,
+// tour_name, tour_date, departure_time, customer_name, customer_email.
+import Nav from "@/components/Nav.astro";
+import ConfirmDialog from "@/components/ConfirmDialog.astro";
+import { ApiError, getBooking, getTourDates, getTourSchedules } from "@/lib/api.js";
+
+// --------------- STRICT AUTH ---------------
+//import { ApiError, getBooking, getTourDates, getTourSchedules, getCurrentCustomer } from "@/lib/api.js";
+//import { getSessionToken, clearSessionCookie } from "@/lib/session.js";
+
+export const prerender = false;
+
+const { id } = Astro.params;
+
+// --------------- STRICT AUTH ---------------
+//// --- Auth ---
+//const sessionToken = getSessionToken(Astro.cookies);
+//if (!sessionToken) {
+//  return Astro.redirect(`/iniciar-sesion?redirect=/my-reserva/${id}`);
+//}
+
+//let currentCustomer: { id: string; full_name: string; email: string } | null = null;
+//try {
+//  currentCustomer = await getCurrentCustomer(sessionToken);
+//} catch {
+//  clearSessionCookie(Astro.cookies);
+//  return Astro.redirect(`/iniciar-sesion?redirect=/my-reserva/${id}`);
+//}
+
+// --- Load the booking ---
+// GET /bookings/:id has no auth requirement on the backend (anyone with the
+// id can fetch it), so the ownership check below is what actually protects
+// this — it must happen before anything is rendered.
+interface Booking {
+  id: string;
+  customer_id: string;
+  tour_id: string;
+  tour_date_id: string;
+  tour_schedule_id: string;
+  quantity: number;
+  number_of_children: number;
+  number_of_babies: number;
+  number_of_pets: number;
+  status: string;
+  created_at: string;
+  tour_name: string;
+  tour_date: string;
+  departure_time: string;
+}
+
+let booking: Booking | null = null;
+try {
+  booking = await getBooking(id as string);
+} catch (err) {
+  if (err instanceof ApiError && err.status === 404) {
+    return Astro.redirect("/404");
+  }
+  throw err;
+}
+
+// --------------- STRICT AUTH ---------------
+//if (!booking || booking.customer_id !== currentCustomer?.id) {
+//  return Astro.redirect("/404");
+//}
+
+if (!booking) {
+  return Astro.redirect("/404");
+}
+
+// Matches the backend's own rule in PATCH/DELETE /bookings/:id.
+const canModify = !["cancelled", "completed"].includes(booking.status);
+
+// Only needed for the edit form's date/time dropdowns.
+let tourDates: any[] = [];
+let tourSchedules: any[] = [];
+if (canModify) {
+  try {
+    [tourDates, tourSchedules] = await Promise.all([
+      getTourDates(booking.tour_id),
+      getTourSchedules(booking.tour_id)
+    ]);
+  } catch (err) {
+    console.error("No se han podido cargar las fechas/horarios disponibles para editar", err);
+  }
+}
+
+const formatDate = (value: string) => {
+  const datePart = value.includes("T") ? value.split("T")[0] : value;
+  return new Date(datePart + "T00:00:00").toLocaleDateString("es-ES", {
+    day: "numeric",
+    month: "long",
+    year: "numeric"
+  });
+};
+
+const statusLabel: Record<string, string> = {
+  cancelled: "Cancelada"
+};
+
+const partySummary = [
+  `${booking.quantity} adulto${booking.quantity === 1 ? "" : "s"}`,
+  booking.number_of_children ? `${booking.number_of_children} niño${booking.number_of_children === 1 ? "" : "s"}` : null,
+  booking.number_of_babies ? `${booking.number_of_babies} bebé${booking.number_of_babies === 1 ? "" : "s"}` : null,
+  booking.number_of_pets ? `${booking.number_of_pets} mascota${booking.number_of_pets === 1 ? "" : "s"}` : null
+].filter(Boolean).join(", ");
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mi reserva — Tours Meriyo Dublín</title>
+    <link rel="icon" href="/web-icon-orange.svg" />
+    <meta name="robots" content="noindex" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,500;0,600;1,500;1,600&family=Work+Sans:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/src/styles/global.css" />
+  </head>
+  <body>
+    <Nav />
+    <main>
+      <section class="reserva-detail">
+        <div class="wrap reserva-detail__inner">
+          <p class="eyebrow">Mi reserva</p>
+          <h1 class="reserva-detail__title">{booking.tour_name}</h1>
+
+          <p class="admin__banner is-hidden" id="reserva-banner" role="status"></p>
+
+          <div class="reserva-card" id="reserva-card" data-reserva-id={booking.id}>
+            <div class="reserva-card__row">
+              {booking.status === 'cancelled' && (
+                <>
+                  <span class="reserva-card__label">Estado</span> 
+                  <span class={`status-pill status-pill--${booking.status}`} id="status-pill">
+                    {statusLabel[booking.status] ?? booking.status}
+                  </span>
+                </>
+              )}
+            </div>
+            <div class="reserva-card__row">
+              <span class="reserva-card__label">Fecha</span>
+              <span id="reserva-date-display">{formatDate(booking.tour_date)}</span>
+            </div>
+            <div class="reserva-card__row">
+              <span class="reserva-card__label">Hora de salida</span>
+              <span id="reserva-time-display">{booking.departure_time}</span>
+            </div>
+            <div class="reserva-card__row">
+              <span class="reserva-card__label">Personas</span>
+              <span id="reserva-party-display">{partySummary}</span>
+            </div>
+            <div class="reserva-card__row">
+              <span class="reserva-card__label">Nº de reserva</span>
+              <span class="reserva-card__mono">{booking.id}</span>
+            </div>
+          </div>
+
+          {!canModify && (
+            <p class="reserva-detail__notice">
+              {booking.status === "cancelled"
+                ? "Esta reserva está cancelada. Si crees que se trata de un error, contáctanos."
+                : "Esta reserva ya se ha completado y no se puede modificar."}
+            </p>
+          )}
+
+          {canModify && (
+            <div class="reserva-actions">
+              <button type="button" class="btn ghost-btn" id="edit-reserva-btn">Editar reserva</button>
+              <button type="button" class="btn danger-btn" id="cancel-reserva-btn">Cancelar reserva</button>
+            </div>
+          )}
+
+          {canModify && (
+            <form id="edit-reserva-form" class="edit-reserva-form is-hidden">
+              <h2 class="edit-reserva-form__title">Editar reserva</h2>
+
+              {tourDates.length > 0 && (
+                <div class="field">
+                  <label for="edit-date">Fecha</label>
+                  <div class="select-wrap">
+                    <select id="edit-date" name="tourDateId">
+                      {tourDates.map((d: any) => (
+                        <option value={d.id} selected={d.id === booking!.tour_date_id}>
+                          {formatDate(d.date)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              {tourSchedules.length > 0 && (
+                <div class="field">
+                  <label for="edit-schedule">Hora</label>
+                  <div class="select-wrap">
+                    <select id="edit-schedule" name="tourScheduleId">
+                      {tourSchedules.map((s: any) => (
+                        <option value={s.id} selected={s.id === booking!.tour_schedule_id}>
+                          {s.time}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              <div class="field-row">
+                <div class="field">
+                  <label for="edit-quantity">Adultos</label>
+                  <input type="number" id="edit-quantity" min="1" max="20" value={booking.quantity} required />
+                </div>
+                <div class="field">
+                  <label for="edit-children">Niños</label>
+                  <input type="number" id="edit-children" min="0" max="20" value={booking.number_of_children} />
+                </div>
+                <div class="field">
+                  <label for="edit-babies">Bebés</label>
+                  <input type="number" id="edit-babies" min="0" max="20" value={booking.number_of_babies} />
+                </div>
+                <div class="field">
+                  <label for="edit-pets">Mascotas</label>
+                  <input type="number" id="edit-pets" min="0" max="20" value={booking.number_of_pets} />
+                </div>
+              </div>
+
+              <p class="panel__error is-hidden" id="edit-reserva-error" role="alert"></p>
+
+              <div class="edit-reserva-form__actions">
+                <button type="submit" class="btn orange-btn" id="save-reserva-btn">Guardar cambios</button>
+                <button type="button" class="btn ghost-btn" id="cancel-edit-btn">Cancelar</button>
+              </div>
+            </form>
+          )}
+        </div>
+      </section>
+    </main>
+
+    <ConfirmDialog />
+
+    <footer class="site-footer">
+      <div class="wrap site-footer__row">
+        <div>
+          <p class="site-footer__logo">Tours <em>Meriyo</em> Dublín</p>
+          <p class="site-footer__text">
+            Guías locales, grupos reducidos y el Dublín que no sale en las
+            postales. Free tours a diario, con reserva anticipada.
+          </p>
+        </div>
+        <p class="site-footer__copy">© {new Date().getFullYear()} Tours Meriyo Dublín</p>
+      </div>
+    </footer>
+  </body>
+</html>
+
+<style is:global>
+  .reserva-detail { background: var(--parchment); padding-block: 64px 100px; min-height: 60vh; }
+  .reserva-detail__inner { max-width: 640px; }
+  .reserva-detail__title {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(1.9rem, 3.2vw, 2.6rem);
+    color: var(--ink);
+    margin: 10px 0 26px;
+  }
+  .reserva-detail__notice {
+    font-size: 0.92rem;
+    color: #4a5b4c;
+    background: var(--cream);
+    border: 1px solid rgba(24, 34, 25, 0.12);
+    border-radius: var(--radius);
+    padding: 14px 18px;
+    margin: 20px 0 0;
+  }
+  .admin__banner {
+    font-size: 0.9rem;
+    border-radius: var(--radius);
+    padding: 12px 18px;
+    margin: 0 0 20px;
+    background: rgba(233, 151, 10, 0.12);
+    border-left: 3px solid var(--gold);
+    color: var(--ink);
+  }
+  .admin__banner.is-hidden { display: none; }
+  .admin__banner--error {
+    background: rgba(158, 73, 54, 0.1);
+    border-left-color: var(--russet);
+    color: #7a2e1f;
+  }
+  .reserva-card {
+    background: var(--cream);
+    border: 1px solid rgba(24, 34, 25, 0.1);
+    border-top: 3px solid var(--gold);
+    border-radius: var(--radius);
+    padding: 24px 26px;
+  }
+  .reserva-card__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px dashed rgba(24, 34, 25, 0.12);
+    font-size: 0.94rem;
+    color: var(--ink);
+  }
+  .reserva-card__row:last-child { border-bottom: none; }
+  .reserva-card__label { color: #6a7a6c; font-size: 0.85rem; }
+  .reserva-card__mono { font-family: monospace; font-size: 0.82rem; color: #6a7a6c; }
+  .status-pill {
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+  }
+  .status-pill--confirmed { background: rgba(72, 122, 74, 0.14); color: #2e5c30; }
+  .status-pill--cancelled { background: rgba(158, 73, 54, 0.14); color: #7a2e1f; }
+  .status-pill--pending { background: rgba(233, 151, 10, 0.16); color: #8a5a06; }
+  .status-pill--completed { background: rgba(24, 34, 25, 0.1); color: #4a5b4c; }
+  .reserva-actions { display: flex; gap: 14px; margin-top: 22px; flex-wrap: wrap; }
+  .ghost-btn { background: none; border: 1px solid rgba(24, 34, 25, 0.22); color: var(--ink); }
+  .ghost-btn:hover { border-color: var(--gold); }
+  .danger-btn { background: none; border: 1px solid rgba(158, 73, 54, 0.4); color: #7a2e1f; }
+  .danger-btn:hover { background: rgba(158, 73, 54, 0.08); }
+  .edit-reserva-form {
+    margin-top: 22px;
+    background: var(--cream);
+    border: 1px solid rgba(24, 34, 25, 0.1);
+    border-radius: var(--radius);
+    padding: 24px 26px;
+  }
+  .edit-reserva-form.is-hidden { display: none; }
+  .edit-reserva-form__title {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: var(--ink);
+    margin: 0 0 18px;
+  }
+  .edit-reserva-form .field { margin-bottom: 16px; }
+  .edit-reserva-form .field-row {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .edit-reserva-form .field-row .field { flex: 1; min-width: 100px; }
+  .edit-reserva-form label {
+    display: block;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #4a5b4c;
+    margin-bottom: 7px;
+  }
+  .edit-reserva-form input[type="number"],
+  .edit-reserva-form select {
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    color: var(--ink);
+    background: var(--cream);
+    border: 1px solid rgba(24, 34, 25, 0.22);
+    border-radius: var(--radius);
+    padding: 11px 14px;
+    width: 100%;
+  }
+  .edit-reserva-form select { appearance: none; cursor: pointer; max-width: 260px; }
+  .edit-reserva-form input:focus,
+  .edit-reserva-form select:focus {
+    outline: none;
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px rgba(233, 151, 10, 0.16);
+  }
+  .edit-reserva-form__actions { display: flex; gap: 12px; margin-top: 6px; }
+  .panel__error {
+    font-size: 0.85rem;
+    color: #7a2e1f;
+    background: rgba(158, 73, 54, 0.1);
+    border-left: 3px solid var(--russet);
+    padding: 10px 14px;
+    border-radius: var(--radius);
+    margin: 0 0 16px;
+  }
+  .panel__error.is-hidden { display: none; }
+  .site-footer { background: var(--forest-deep); color: var(--parchment-alt); padding-block: 40px; border-top: 1px solid var(--line); }
+  .site-footer__row { display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; flex-wrap: wrap; }
+  .site-footer__logo { font-family: var(--font-display); font-style: italic; font-size: 1.05rem; color: var(--cream); margin: 0 0 8px; }
+  .site-footer__logo em { color: var(--gold); }
+  .site-footer__text { max-width: 46ch; font-size: 0.85rem; line-height: 1.6; color: var(--parchment-alt); margin: 0; }
+  .site-footer__copy { font-size: 0.78rem; color: rgba(242, 234, 215, 0.6); margin: 0; }
+
+  @media (max-width: 640px) {
+    .reserva-actions { flex-direction: column; align-items: stretch; }
+    .edit-reserva-form__actions { flex-direction: column; align-items: stretch; }
+  }
+</style>
+
+<script define:vars={{ bookingId: booking.id, canModify }}>
+  import("/src/lib/confirmDialog.js").then(({ initConfirmDialog, confirmDialog }) => {
+    initConfirmDialog();
+
+    const banner = document.getElementById("reserva-banner");
+    const editBtn = document.getElementById("edit-reserva-btn");
+    const cancelBtn = document.getElementById("cancel-reserva-btn");
+    const cancelEditBtn = document.getElementById("cancel-edit-btn");
+    const editForm = document.getElementById("edit-reserva-form");
+    const editError = document.getElementById("edit-reserva-error");
+    const saveBtn = document.getElementById("save-reserva-btn");
+    const actions = document.querySelector(".reserva-actions");
+    const partyDisplay = document.getElementById("reserva-party-display");
+    const dateDisplay = document.getElementById("reserva-date-display");
+    const timeDisplay = document.getElementById("reserva-time-display");
+    const dateSelect = document.getElementById("edit-date");
+    const scheduleSelect = document.getElementById("edit-schedule");
+    const quantityInput = document.getElementById("edit-quantity");
+    const childrenInput = document.getElementById("edit-children");
+    const babiesInput = document.getElementById("edit-babies");
+    const petsInput = document.getElementById("edit-pets");
+    const statusPill = document.getElementById("status-pill");
+
+    function showBanner(message, isError = false) {
+      if (!banner) return;
+      banner.textContent = message;
+      banner.classList.remove("is-hidden");
+      banner.classList.toggle("admin__banner--error", isError);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function partySummary(quantity, children, babies, pets) {
+      const parts = [`${quantity} adulto${quantity === 1 ? "" : "s"}`];
+      if (children) parts.push(`${children} niño${children === 1 ? "" : "s"}`);
+      if (babies) parts.push(`${babies} bebé${babies === 1 ? "" : "s"}`);
+      if (pets) parts.push(`${pets} mascota${pets === 1 ? "" : "s"}`);
+      return parts.join(", ");
+    }
+
+    editBtn?.addEventListener("click", () => {
+      editForm?.classList.remove("is-hidden");
+      actions?.classList.add("is-hidden");
+    });
+
+    cancelEditBtn?.addEventListener("click", () => {
+      editForm?.classList.add("is-hidden");
+      actions?.classList.remove("is-hidden");
+      editError?.classList.add("is-hidden");
+    });
+
+    editForm?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      editError?.classList.add("is-hidden");
+      if (!saveBtn) return;
+
+      saveBtn.disabled = true;
+      saveBtn.textContent = "Guardando…";
+
+      const quantity = Number(quantityInput.value);
+      const numberOfChildren = Number(childrenInput.value || 0);
+      const numberOfBabies = Number(babiesInput.value || 0);
+      const numberOfPets = Number(petsInput.value || 0);
+
+      const payload = {
+        quantity,
+        numberOfChildren,
+        numberOfBabies,
+        numberOfPets,
+        ...(dateSelect ? { tourDateId: dateSelect.value } : {}),
+        ...(scheduleSelect ? { tourScheduleId: scheduleSelect.value } : {})
+      };
+
+      try {
+        const res = await fetch(`/api/bookings/${bookingId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.message || "No se ha podido actualizar la reserva.");
+
+        if (partyDisplay) partyDisplay.textContent = partySummary(quantity, numberOfChildren, numberOfBabies, numberOfPets);
+        if (dateDisplay && data?.tour_date) {
+          dateDisplay.textContent = new Date(data.tour_date.split("T")[0] + "T00:00:00").toLocaleDateString("es-ES", {
+            day: "numeric",
+            month: "long",
+            year: "numeric"
+          });
+        }
+        if (timeDisplay && dateSelect) {
+          const selectedOption = dateSelect.options[dateSelect.selectedIndex];
+          if (selectedOption) dateDisplay.textContent = selectedOption.textContent;
+        }
+        if (timeDisplay && scheduleSelect) {
+          const selectedTime = scheduleSelect.options[scheduleSelect.selectedIndex];
+          if (selectedTime) timeDisplay.textContent = selectedTime.textContent;
+        }
+
+        editForm.classList.add("is-hidden");
+        actions?.classList.remove("is-hidden");
+        showBanner("Reserva actualizada correctamente. Te hemos enviado un ticket actualizado por email.");
+      } catch (err) {
+        if (editError) {
+          editError.textContent = err?.message || "No se ha podido actualizar la reserva.";
+          editError.classList.remove("is-hidden");
+        }
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = "Guardar cambios";
+      }
+    });
+
+    async function cancelReserva() {
+      const confirmed = await confirmDialog({
+        title: "Cancelar reserva",
+        message: "¿Seguro que quieres cancelar esta reserva? Esta acción no se puede deshacer.",
+        confirmLabel: "Cancelar reserva"
+      });
+      if (!confirmed) return;
+
+      cancelBtn?.setAttribute("disabled", "true");
+      try {
+        const res = await fetch(`/api/bookings/${bookingId}`, { method: "DELETE" });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.message || "No se ha podido cancelar la reserva.");
+
+        if (statusPill) {
+          statusPill.textContent = "Cancelada";
+          statusPill.className = "status-pill status-pill--cancelled";
+        }
+        actions?.remove();
+        editForm?.remove();
+        showBanner("Reserva cancelada. Te hemos enviado la confirmación por email.");
+      } catch (err) {
+        showBanner(err?.message || "No se ha podido cancelar la reserva.", true);
+        cancelBtn?.removeAttribute("disabled");
+      }
+    }
+
+    cancelBtn?.addEventListener("click", cancelReserva);
+
+    // The "Cancelar reserva" button in the booking email links here with
+    // ?cancel=true. Strip the param immediately so a page refresh or the
+    // browser back button can't re-trigger this. Deliberately NOT auto-
+    // cancelling on arrival: mail clients and corporate security scanners
+    // (Gmail/Outlook Safe Links, antivirus link-checkers, etc.) commonly
+    // pre-fetch links inside emails to scan them for safety, which would
+    // silently cancel the booking before the customer ever saw the page.
+    // Landing here just opens the same confirmation dialog the manual
+    // button uses, so cancellation still requires an explicit click from
+    // a real visitor.
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("cancel") === "true") {
+      history.replaceState(null, "", window.location.pathname);
+      if (canModify && cancelBtn) {
+        cancelReserva();
+      } else {
+        showBanner("Esta reserva ya no se puede cancelar.", true);
+      }
+    }
+  });
+</script>
+
+<!--
+============================================================================
+REQUIRED ADDITIONS (backend routes already exist — just wire the frontend
+up to them):
+
+1) Add to src/lib/api.js, in the "--- Bookings ---" section:
+
+  export function updateBooking(id, data, token) {
+    return apiFetch(`/bookings/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+      headers: { Authorization: `Bearer ${token}` }
+    });
+  }
+
+  export function cancelBooking(id, token) {
+    return apiFetch(`/bookings/${id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` }
+    });
+  }
+
+2) Create src/pages/api/bookings/[id].js with PATCH + DELETE handlers that
+   read the session cookie and forward it as the Bearer token to
+   updateBooking/cancelBooking. Full file provided alongside this one.
+============================================================================
+-->

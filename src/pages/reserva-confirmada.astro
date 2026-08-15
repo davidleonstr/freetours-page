@@ -1,0 +1,357 @@
+---
+import Nav from "@/components/Nav.astro";
+import { ApiError, getBooking } from "@/lib/api.js";
+
+export const prerender = false;
+
+const bookingId = Astro.url.searchParams.get("booking");
+
+let booking: any = null;
+let error: string | null = null;
+
+if (bookingId) {
+  try {
+    booking = await getBooking(bookingId);
+  } catch (err) {
+    error =
+      err instanceof ApiError && err.status === 404
+        ? "No hemos encontrado esa reserva."
+        : "No hemos podido recuperar los datos de tu reserva.";
+  }
+} else {
+  error = "Falta el identificador de la reserva.";
+}
+
+const formatDate = (value: string) =>
+  new Date(value).toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" });
+
+// booking.departure_time comes back as "HH:MM:SS" — trim the seconds.
+const formatTime = (value: string) => value?.slice(0, 5) ?? value;
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Reserva confirmada — Tours Meriyo Dublín</title>
+    <link rel="icon" href="/web-icon-orange.svg" />
+    <meta name="robots" content="noindex" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,500;0,600;1,500;1,600&family=Work+Sans:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/src/styles/global.css" />
+  </head>
+  <body>
+    <Nav />
+    <main>
+      <section class="confirm">
+        <div class="wrap confirm__inner">
+          {error ? (
+            <>
+              <p class="eyebrow confirm__eyebrow">Vaya</p>
+              <h1 class="confirm__title">{error}</h1>
+              <div class="confirm__actions">
+                <a href="/reservar" class="btn btn--primary rounded-btn">Volver a reservar</a>
+              </div>
+            </>
+          ) : (
+            <>
+              <h1 class="confirm__title">Reserva confirmada</h1>
+              <p class="confirm__text">
+                Puedes modificarla desde el email o desde tu ticket en PDF. Por favor, si no vas a asistir, cancélala.
+              </p>
+
+              <dl class="confirm__list">
+                <div class="first__row">
+                  <dt><h1>Ruta</h1></dt>
+                  <dd><h3>{booking.tour_name}</h3></dd>
+                </div>
+                <div class="confirm__row">
+                  <dt>Nombre</dt>
+                  <dd>{booking.customer_name}</dd>
+                </div>
+                <div class="confirm__row">
+                  <dt>Email</dt>
+                  <dd>{booking.customer_email}</dd>
+                </div>
+                <div class="confirm__row">
+                  <dt>Fecha</dt>
+                  <dd>{formatDate(booking.tour_date)}</dd>
+                </div>
+                {booking.departure_time && (
+                  <div class="confirm__row">
+                    <dt>Hora</dt>
+                    <dd>{formatTime(booking.departure_time)}</dd>
+                  </div>
+                )}
+                <div class="confirm__row">
+                  <dt>Adultos</dt>
+                  <dd>{booking.quantity}</dd>
+                </div>
+                {booking.number_of_children > 0 && (
+                  <div class="confirm__row">
+                    <dt>Niños</dt>
+                    <dd>{booking.number_of_children}</dd>
+                  </div>
+                )}
+                {booking.number_of_babies > 0 && (
+                  <div class="confirm__row">
+                    <dt>Bebés</dt>
+                    <dd>{booking.number_of_babies}</dd>
+                  </div>
+                )}
+                {booking.number_of_pets > 0 && (
+                  <div class="confirm__row">
+                    <dt>Mascotas</dt>
+                    <dd>{booking.number_of_pets}</dd>
+                  </div>
+                )}
+                <div class="confirm__row confirm__row--total">
+                  <dt>Total</dt>
+                  <dd>0.00€</dd>
+                </div>
+              </dl>
+
+              <div class="warning-box" role="note">
+                <svg
+                  class="warning-box__icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M12 3.5 22 20.5H2L12 3.5Z"
+                    fill="#F5B400"
+                    stroke="#7A5B00"
+                    stroke-width="1.4"
+                    stroke-linejoin="round"
+                  />
+                  <rect x="11.15" y="9.2" width="1.7" height="6" rx="0.85" fill="#3A2900" />
+                  <circle cx="12" cy="17.4" r="1" fill="#3A2900" />
+                </svg>
+                <p class="warning-box__text">
+                  Esta reserva está condicionada y puede sufrir variaciones o cancelaciones si no
+                  se cumple el mínimo de personas. Te lo notificaremos por WhatsApp o email.
+                  Gracias por tu comprensión.
+                </p>
+              </div>
+
+              <div class="confirm__actions">
+                <a href={`/mi-reserva/${booking.id}/pdf`} class="btn nav__cta rounded-btn orange-btn" target="_blank">Descargar PDF</a>
+                <a href={`/mi-reserva/${booking.id}`} class="btn nav__cta rounded-btn orange-btn">Editar reserva</a>
+                <a href="/" class="btn btn--secondary rounded-btn">Volver al inicio</a>
+              </div>
+            </>
+          )}
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer" id="sobre-mi">
+      <div class="wrap site-footer__row">
+        <div>
+          <p class="site-footer__logo">Tours <em>Meriyo</em> Dublín</p>
+          <p class="site-footer__text">
+            Guías locales, grupos reducidos y el Dublín que no sale en las
+            postales. Free tours a diario, con reserva anticipada.
+          </p>
+        </div>
+        <p class="site-footer__copy">© {new Date().getFullYear()} Tours Meriyo Dublín</p>
+      </div>
+    </footer>
+  </body>
+</html>
+
+<style is:global>
+  .first__row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    border-radius: var(--radius) var(--radius) 0 0;
+    background: #e9970a;
+    font-size: 1rem;
+  }
+  .confirm {
+    min-height: 72vh;
+    display: flex;
+    align-items: center;
+    background: var(--forest-deep);
+    color: var(--parchment-alt);
+  }
+  .confirm__inner {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-block: 80px;
+  }
+  .confirm__eyebrow { color: var(--gold-soft); }
+  .confirm__title {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 600;
+    font-size: clamp(2.2rem, 4.6vw, 3.4rem);
+    line-height: 1.1;
+    color: var(--cream);
+    margin: 16px 0 20px;
+  }
+  .confirm__text {
+    max-width: 46ch;
+    font-size: 1rem;
+    line-height: 1.65;
+    margin: 0 0 32px;
+  }
+  .confirm__list {
+    width: 100%;
+    max-width: 420px;
+    text-align: left;
+    background: rgb(255, 239, 200);
+    border: 1px solid rgb(49, 49, 49);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    margin: 0 0 24px;
+  }
+  .confirm__row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 9px 0;
+    border-bottom: 1px dashed rgb(2, 2, 2);
+    font-size: 0.9rem;
+  }
+  .confirm__row:last-child { border-bottom: none; }
+  .confirm__row dt { color: rgb(0, 0, 0); margin: 0; }
+  .confirm__row dd { margin: 0; color: rgb(0, 0, 0); font-weight: 500; text-align: right; }
+  .confirm__row--total dt,
+  .confirm__row--total dd {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 1.3rem;
+  }
+
+  .first__row:last-child { border-bottom: none; }
+  .first__row dt {
+    color: #fff7ec;
+    margin: 20px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    font-size: 0.78rem;
+  }
+  .first__row dd {
+    margin: 20px;
+    color: #fff7ec;
+    font-weight: 700;
+    text-align: right;
+    font-size: 1.05rem;
+  }
+  .first__row--total dt,
+  .first__row--total dd {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 1.3rem;
+  }
+
+  /* Warning block */
+  .warning-box {
+    width: 100%;
+    max-width: 420px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    text-align: left;
+    background: #fff7d6;
+    border: 1px solid #e0b400;
+    border-left: 4px solid #e0b400;
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    margin: 0 0 32px;
+  }
+  .warning-box__icon {
+    flex: 0 0 auto;
+    width: 24px;
+    height: 24px;
+    margin-top: 1px;
+  }
+  .warning-box__text {
+    margin: 0;
+    color: #4a3b00;
+    font-size: 0.88rem;
+    line-height: 1.55;
+  }
+
+  /* Buttons */
+  .confirm__actions {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .btn {
+    display: inline-block;
+    padding: 12px 26px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  }
+  .btn--primary {
+    background: var(--gold, #d99b3f);
+    color: var(--forest-deep, #1c2b22);
+    border: 1px solid var(--gold, #d99b3f);
+  }
+  .btn--primary:hover {
+    background: var(--gold-soft, #e8b969);
+    border-color: var(--gold-soft, #e8b969);
+  }
+  .btn--secondary {
+    background: transparent;
+    color: var(--cream, #f2ead7);
+    border: 1px solid var(--parchment-alt, #f2ead7);
+  }
+  .btn--secondary:hover {
+    background: rgba(242, 234, 215, 0.12);
+  }
+
+  .site-footer {
+    background: var(--forest-deep);
+    color: var(--parchment-alt);
+    padding-block: 40px;
+    border-top: 1px solid var(--line);
+  }
+  .site-footer__row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .site-footer__logo {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 1.05rem;
+    color: var(--cream);
+    margin: 0 0 8px;
+  }
+  .site-footer__logo em { color: var(--gold); }
+  .site-footer__text {
+    max-width: 46ch;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: var(--parchment-alt);
+    margin: 0;
+  }
+  .site-footer__copy {
+    font-size: 0.78rem;
+    color: rgba(242, 234, 215, 0.6);
+    margin: 0;
+  }
+</style>

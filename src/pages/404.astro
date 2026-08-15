@@ -1,0 +1,150 @@
+---
+import Nav from "@/components/Nav.astro";
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Página no encontrada — Tours Meriyo Dublín</title>
+    <link rel="icon" href="/web-icon-orange.svg" />
+    <meta name="robots" content="noindex" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,500;0,600;1,500;1,600&family=Work+Sans:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/src/styles/global.css" />
+  </head>
+  <body>
+    <Nav />
+    <main>
+      <section class="error-page">
+        <div class="wrap error-page__inner">
+          <p class="eyebrow error-page__eyebrow">Error 404</p>
+          <h1 class="error-page__title">Este sendero<br />no lleva a ningún sitio</h1>
+          <p class="error-page__text">
+            Parece que te has desviado de la ruta. La página que buscas no existe
+            o se ha movido a otro rincón de Dublín.
+          </p>
+
+          <div class="error-page__actions">
+            <a href="/" class="btn orange-btn rounded-btn">Volver al inicio</a>
+            <a href="/#excursiones" class="btn btn-ghost">Ver excursiones</a>
+          </div>
+
+          <svg class="error-page__deco" viewBox="0 0 200 60" width="180" height="54" fill="none" stroke="var(--gold)" stroke-width="1.4" stroke-linecap="round">
+            <path d="M4 44 C 40 10, 80 54, 120 20 S 190 40, 196 12" />
+            <circle cx="4" cy="44" r="3" fill="var(--gold)" stroke="none" />
+            <circle cx="196" cy="12" r="3" fill="var(--russet)" stroke="none" />
+          </svg>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer" id="sobre-mi">
+      <div class="wrap site-footer__row">
+        <div>
+          <p class="site-footer__logo">Tours <em>Meriyo</em> Dublín</p>
+          <p class="site-footer__text">
+            Guías locales, grupos reducidos y el Dublín que no sale en las
+            postales. Free tours a diario, con reserva anticipada.
+          </p>
+        </div>
+        <p class="site-footer__copy">© {new Date().getFullYear()} Tours Meriyo Dublín</p>
+      </div>
+    </footer>
+  </body>
+</html>
+
+<style is:global>
+  .error-page {
+    min-height: 72vh;
+    display: flex;
+    align-items: center;
+    background: var(--forest-deep);
+    color: var(--parchment-alt);
+  }
+
+  .error-page__inner {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-block: 80px;
+  }
+
+  .error-page__eyebrow {
+    color: var(--gold-soft);
+  }
+
+  .error-page__title {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 600;
+    font-size: clamp(2.2rem, 4.6vw, 3.6rem);
+    line-height: 1.1;
+    color: var(--cream);
+    margin: 16px 0 20px;
+  }
+
+  .error-page__text {
+    max-width: 46ch;
+    font-size: 1rem;
+    line-height: 1.65;
+    color: var(--parchment-alt);
+    margin: 0 0 36px;
+  }
+
+  .error-page__actions {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 44px;
+  }
+
+  .error-page__deco {
+    opacity: 0.8;
+  }
+
+  @media (max-width: 640px) {
+    .error-page__inner { padding-block: 60px; }
+  }
+
+  .site-footer {
+    background: var(--forest-deep);
+    color: var(--parchment-alt);
+    padding-block: 40px;
+    border-top: 1px solid var(--line);
+  }
+  .site-footer__row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .site-footer__logo {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 1.05rem;
+    color: var(--cream);
+    margin: 0 0 8px;
+  }
+  .site-footer__logo em { color: var(--gold); }
+  .site-footer__text {
+    max-width: 46ch;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: var(--parchment-alt);
+    margin: 0;
+  }
+  .site-footer__copy {
+    font-size: 0.78rem;
+    color: rgba(242, 234, 215, 0.6);
+    margin: 0;
+  }
+</style>

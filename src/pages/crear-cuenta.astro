@@ -1,0 +1,214 @@
+---
+import Nav from "@/components/Nav.astro";
+import "@/styles/global.css";
+import { getCurrentCustomer } from "@/lib/api.js";
+import { getSessionToken, clearSessionCookie } from "@/lib/session.js";
+
+export const prerender = false;
+
+const redirectTo = "/cuenta-creada";
+
+const token = getSessionToken(Astro.cookies);
+if (token) {
+  try {
+    await getCurrentCustomer(token);
+    return Astro.redirect(redirectTo);
+  } catch {
+    clearSessionCookie(Astro.cookies);
+  }
+}
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Crear cuenta — Tours Meriyo Dublín</title>
+    <link rel="icon" href="/web-icon-orange.svg" />
+    <meta name="robots" content="noindex" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,500;0,600;1,500;1,600&family=Work+Sans:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <Nav />
+    <main>
+      <section class="auth-page">
+        <div class="wrap auth-page__wrap">
+          <div class="auth-card">
+            <p class="eyebrow">Únete</p>
+            <h1 class="auth-card__title">Crear cuenta</h1>
+            <p class="auth-card__text">
+              Solo necesitamos tu nombre y correo. Sin contraseñas: la próxima vez que reserves,
+              basta con tu correo para entrar.
+            </p>
+
+            <form id="details-form" novalidate>
+              <div class="field">
+                <label for="fullName">Nombre completo<em>*</em></label>
+                <input type="text" id="fullName" name="fullName" required maxlength="255" />
+              </div>
+              <div class="field">
+                <label for="email">Correo electrónico<em>*</em></label>
+                <input type="email" id="email" name="email" required />
+              </div>
+              <div class="field">
+                <label for="phone">Teléfono <span class="field__optional">(opcional)</span></label>
+                <input type="tel" id="phone" name="phone" maxlength="50" />
+              </div>
+              <p class="auth-error is-hidden" id="details-error" role="alert"></p>
+              <button type="submit" class="btn orange-btn auth-card__submit" id="details-submit">
+                Crear cuenta
+              </button>
+            </form>
+
+            <p class="auth-card__footer">
+              ¿Ya tienes cuenta?
+              <a href={`/iniciar-sesion?redirect=${encodeURIComponent(redirectTo)}`} id="login-link">Inicia sesión</a>
+            </p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer" id="sobre-mi">
+      <div class="wrap site-footer__row">
+        <div>
+          <p class="site-footer__logo">Tours <em>Meriyo</em> Dublín</p>
+          <p class="site-footer__text">
+            Guías locales, grupos reducidos y el Dublín que no sale en las postales.
+          </p>
+        </div>
+        <p class="site-footer__copy">© {new Date().getFullYear()} Tours Meriyo Dublín</p>
+      </div>
+    </footer>
+  </body>
+</html>
+
+<style is:global>
+  .site-footer {
+    background: var(--forest-deep);
+    color: var(--parchment-alt);
+    padding-block: 40px;
+    border-top: 1px solid var(--line);
+  }
+  .site-footer__row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .site-footer__logo {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 1.05rem;
+    color: var(--cream);
+    margin: 0 0 8px;
+  }
+  .site-footer__logo em { color: var(--gold); }
+  .site-footer__text {
+    max-width: 46ch;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: var(--parchment-alt);
+    margin: 0;
+  }
+  .site-footer__copy {
+    font-size: 0.78rem;
+    color: rgba(242, 234, 215, 0.6);
+    margin: 0;
+  }
+
+  .auth-page { background: var(--parchment); min-height: 70vh; display: flex; align-items: center; padding-block: 60px; }
+  .auth-page__wrap { display: flex; justify-content: center; }
+  .auth-card {
+    width: 100%; max-width: 440px;
+    background: var(--cream);
+    border: 1px solid rgba(24, 34, 25, 0.1);
+    border-top: 3px solid var(--gold);
+    border-radius: var(--radius);
+    padding: 34px 32px 30px;
+  }
+  .auth-card__title { font-family: var(--font-display); font-weight: 600; font-size: 1.8rem; color: var(--ink); margin: 8px 0 10px; }
+  .auth-card__text { font-size: 0.92rem; line-height: 1.55; color: #5a6b5c; margin: 0 0 24px; }
+  .auth-card .field { margin-bottom: 18px; }
+  .auth-card label { display: block; font-size: 0.82rem; font-weight: 600; color: #4a5b4c; margin-bottom: 7px; }
+  .auth-card label em { font-style: normal; color: var(--russet); margin-left: 2px; }
+  .auth-card input[type="email"], .auth-card input[type="text"], .auth-card input[type="tel"] {
+    width: 100%; font-family: var(--font-body); font-size: 0.95rem; color: var(--ink);
+    background: var(--cream); border: 1px solid rgba(24, 34, 25, 0.22); border-radius: var(--radius); padding: 12px 14px;
+  }
+  .auth-card input:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px rgba(233, 151, 10, 0.16); }
+  .auth-card__submit { width: 100%; justify-content: center; margin-top: 4px; }
+  .auth-card__submit:disabled { opacity: 0.6; cursor: not-allowed; }
+  .field__optional { font-weight: 400; color: #8a8272; }
+
+  .auth-error {
+    font-size: 0.85rem; color: #7a2e1f; background: rgba(158, 73, 54, 0.1);
+    border-left: 3px solid var(--russet); padding: 10px 14px; border-radius: var(--radius); margin: 0 0 16px;
+  }
+  .auth-error.is-hidden { display: none; }
+
+  .auth-card__footer { text-align: center; font-size: 0.85rem; color: #5a6b5c; margin: 24px 0 0; }
+  .auth-card__footer a { color: var(--russet); text-decoration: underline; }
+</style>
+
+<script define:vars={{ redirectTo }}>
+  const detailsForm = document.getElementById('details-form');
+  const fullNameInput = document.getElementById('fullName');
+  const emailInput = document.getElementById('email');
+  const phoneInput = document.getElementById('phone');
+  const detailsError = document.getElementById('details-error');
+  const detailsSubmit = document.getElementById('details-submit');
+  const loginLink = document.getElementById('login-link');
+
+  function showError(el, message) { el.textContent = message; el.classList.remove('is-hidden'); }
+  function clearError(el) { el.textContent = ''; el.classList.add('is-hidden'); }
+
+  detailsForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    clearError(detailsError);
+
+    if (!fullNameInput.value.trim() || !emailInput.value.trim()) {
+      showError(detailsError, 'Completa tu nombre y correo electrónico.');
+      return;
+    }
+
+    detailsSubmit.disabled = true;
+    detailsSubmit.textContent = 'Creando cuenta…';
+
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fullName: fullNameInput.value.trim(),
+          email: emailInput.value.trim(),
+          phone: phoneInput.value.trim() || undefined
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        if (res.status === 409) {
+          loginLink.href = `/iniciar-sesion?redirect=${encodeURIComponent(redirectTo)}&email=${encodeURIComponent(emailInput.value.trim())}`;
+          showError(detailsError, `${data?.message ?? 'Ya existe una cuenta con ese correo.'} Puedes iniciar sesión en su lugar.`);
+        } else {
+          showError(detailsError, data?.message || 'No se ha podido crear la cuenta.');
+        }
+        return;
+      }
+
+      window.location.href = redirectTo || '/';
+    } catch {
+      showError(detailsError, 'No se ha podido conectar con el servidor. Inténtalo de nuevo.');
+    } finally {
+      detailsSubmit.disabled = false;
+      detailsSubmit.textContent = 'Crear cuenta';
+    }
+  });
+</script>

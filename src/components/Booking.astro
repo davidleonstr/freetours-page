@@ -1,0 +1,1328 @@
+---
+import { getTours, getCurrentCustomer } from "@/lib/api.js";
+import { getSessionToken, clearSessionCookie } from "@/lib/session.js";
+
+interface ApiTour {
+  id: string;
+  name: string;
+  capacity: number | null;
+  is_active: boolean;
+}
+
+interface CurrentCustomer {
+  id: string;
+  full_name: string;
+  email: string;
+  phone: string | null;
+}
+
+let tours: ApiTour[] = [];
+let loadError = false;
+
+try {
+  tours = await getTours({ active: true });
+} catch (err) {
+  console.error('Failed to load tours from the API', err);
+  loadError = true;
+}
+
+// If the visitor already has a valid session, skip asking for their name/
+// email again and book straight under their account.
+let currentCustomer: CurrentCustomer | null = null;
+const sessionToken = getSessionToken(Astro.cookies);
+if (sessionToken) {
+  try {
+    currentCustomer = await getCurrentCustomer(sessionToken);
+  } catch {
+    // Expired/invalid token — clear it and fall back to the guest flow,
+    // which logs them in (or registers them) on submit.
+    clearSessionCookie(Astro.cookies);
+  }
+}
+
+const preselectedTour = Astro.url.searchParams.get("tour") ?? "";
+---
+
+<section class="booking" id="reserva">
+  <div class="wrap">
+    <p class="eyebrow booking__eyebrow">Reserva tu plaza</p>
+    <h1 class="booking__title">Vive Dublín a tu ritmo</h1>
+    <p class="booking__subtitle">Free tours — sin coste, sin pago que gestionar. Solo reserva tu plaza.</p>
+
+    {loadError && (
+      <p class="booking__notice">
+        No hemos podido cargar las rutas disponibles. Recarga la página o inténtalo más tarde.
+      </p>
+    )}
+
+    {!loadError && (
+    <div class="booking__grid">
+      <!-- ============ FORM COLUMN ============ -->
+      <form class="booking__form" id="booking-form" novalidate data-authenticated={currentCustomer ? "true" : "false"}>
+        <!-- 1. Tour details -->
+        <div class="booking__card">
+          <h2 class="booking__card-title"><span class="booking__num">01</span>El tour</h2>
+
+          <div class="field">
+            <label for="tour">Selecciona tu ruta<em>*</em></label>
+            <div class="select-wrap">
+              <select id="tour" name="tour" required>
+                <option value="" disabled selected={!preselectedTour}>Elige una ruta</option>
+                {tours.map((t) => (
+                  <option
+                    value={t.id}
+                    data-capacity={t.capacity ?? ''}
+                    selected={t.id === preselectedTour}
+                  >
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div class="field-row">
+            <div class="field">
+              <label for="fecha">Fecha<em>*</em></label>
+              <div class="select-wrap">
+                <select id="fecha" name="fecha" required disabled>
+                  <option value="" selected>Elige primero una ruta</option>
+                </select>
+              </div>
+            </div>
+            <div class="field">
+              <label for="hora">Hora de inicio<em>*</em></label>
+              <div class="select-wrap">
+                <select id="hora" name="hora" required disabled>
+                  <option value="" selected>Elige primero una ruta</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="field-row field-row--three">
+            <div class="field">
+              <label for="guests">Adultos<em>*</em></label>
+              <div class="stepper">
+                <button type="button" class="stepper__btn" id="guests-minus" aria-label="Restar adulto">−</button>
+                <input type="number" id="guests" name="guests" min="1" max="15" value="1" readonly />
+                <button type="button" class="stepper__btn" id="guests-plus" aria-label="Añadir adulto">+</button>
+              </div>
+            </div>
+            <div class="field">
+              <label for="children">Niños <span class="field__optional">(no ocupan plaza)</span></label>
+              <div class="stepper">
+                <button type="button" class="stepper__btn" id="children-minus" aria-label="Restar niño">−</button>
+                <input type="number" id="children" name="children" min="0" max="15" value="0" readonly />
+                <button type="button" class="stepper__btn" id="children-plus" aria-label="Añadir niño">+</button>
+              </div>
+            </div>
+            <div class="field">
+              <label for="babies">Bebés <span class="field__optional">(no ocupan plaza)</span></label>
+              <div class="stepper">
+                <button type="button" class="stepper__btn" id="babies-minus" aria-label="Restar bebé">−</button>
+                <input type="number" id="babies" name="babies" min="0" max="10" value="0" readonly />
+                <button type="button" class="stepper__btn" id="babies-plus" aria-label="Añadir bebé">+</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="field-row field-row--pets">
+            <div class="field">
+              <label for="pets">Mascotas <span class="field__optional">(no ocupan plaza)</span></label>
+              <div class="stepper">
+                <button type="button" class="stepper__btn" id="pets-minus" aria-label="Restar mascota">−</button>
+                <input type="number" id="pets" name="pets" min="0" max="5" value="0" readonly />
+                <button type="button" class="stepper__btn" id="pets-plus" aria-label="Añadir mascota">+</button>
+              </div>
+            </div>
+          </div>
+
+          <p class="field__notice is-hidden" id="availability-notice" role="status"></p>
+        </div>
+
+        <!-- 2. Your details -->
+        <div class="booking__card">
+          <h2 class="booking__card-title"><span class="booking__num">02</span>Tus datos</h2>
+
+          {currentCustomer ? (
+            <div class="booking__account" id="account-summary">
+              <p class="booking__account-label">Reservando como</p>
+              <p class="booking__account-name">{currentCustomer.full_name}</p>
+              <p class="booking__account-email">{currentCustomer.email}</p>
+              <button type="button" class="link-btn" id="logout-btn">¿No son tus datos? Presione aquí para poner sus datos nuevamente.</button>
+            </div>
+          ) : (
+            <div id="guest-fields">
+              <div class="field-row">
+                <div class="field">
+                  <label for="nombre">Nombre<em>*</em></label>
+                  <input type="text" id="nombre" name="nombre" required />
+                </div>
+                <div class="field">
+                  <label for="apellidos">Apellidos <span class="field__optional">(opcional)</span></label>
+                  <input type="text" id="apellidos" name="apellidos" required />
+                </div>
+              </div>
+
+              <div class="field-row field-row--email ">
+                <div class="field">
+                  <label for="email">Correo electrónico<em>*</em></label>
+                  <input type="email" id="email" name="email" required />
+                </div>
+                <div class="field">
+                  <label for="telefono">Teléfono <em>*</em></label>
+                  <div class="phone-group">
+                    <div class="select-wrap phone-group__prefix-wrap">
+<select id="prefijo" name="prefijo" class="phone-group__prefix" aria-label="Prefijo del país">
+                        <option value="+93">Afganistán +93</option>
+                        <option value="+355">Albania +355</option>
+                        <option value="+49">Alemania +49</option>
+                        <option value="+376">Andorra +376</option>
+                        <option value="+244">Angola +244</option>
+                        <option value="+1268">Antigua y Barbuda +1268</option>
+                        <option value="+966">Arabia Saudita +966</option>
+                        <option value="+213">Argelia +213</option>
+                        <option value="+54">Argentina +54</option>
+                        <option value="+374">Armenia +374</option>
+                        <option value="+61">Australia +61</option>
+                        <option value="+43">Austria +43</option>
+                        <option value="+994">Azerbaiyán +994</option>
+                        <option value="+1242">Bahamas +1242</option>
+                        <option value="+880">Bangladés +880</option>
+                        <option value="+1246">Barbados +1246</option>
+                        <option value="+973">Baréin +973</option>
+                        <option value="+32">Bélgica +32</option>
+                        <option value="+501">Belice +501</option>
+                        <option value="+229">Benín +229</option>
+                        <option value="+375">Bielorrusia +375</option>
+                        <option value="+95">Birmania (Myanmar) +95</option>
+                        <option value="+591">Bolivia +591</option>
+                        <option value="+387">Bosnia y Herzegovina +387</option>
+                        <option value="+267">Botsuana +267</option>
+                        <option value="+55">Brasil +55</option>
+                        <option value="+673">Brunéi +673</option>
+                        <option value="+359">Bulgaria +359</option>
+                        <option value="+226">Burkina Faso +226</option>
+                        <option value="+257">Burundi +257</option>
+                        <option value="+975">Bután +975</option>
+                        <option value="+238">Cabo Verde +238</option>
+                        <option value="+855">Camboya +855</option>
+                        <option value="+237">Camerún +237</option>
+                        <option value="+1">Canadá +1</option>
+                        <option value="+974">Catar +974</option>
+                        <option value="+235">Chad +235</option>
+                        <option value="+56">Chile +56</option>
+                        <option value="+86">China +86</option>
+                        <option value="+357">Chipre +357</option>
+                        <option value="+379">Ciudad del Vaticano +379</option>
+                        <option value="+57">Colombia +57</option>
+                        <option value="+269">Comoras +269</option>
+                        <option value="+242">Congo (Rep. del) +242</option>
+                        <option value="+243">Congo (Rep. Dem. del) +243</option>
+                        <option value="+850">Corea del Norte +850</option>
+                        <option value="+82">Corea del Sur +82</option>
+                        <option value="+225">Costa de Marfil +225</option>
+                        <option value="+506">Costa Rica +506</option>
+                        <option value="+385">Croacia +385</option>
+                        <option value="+53">Cuba +53</option>
+                        <option value="+45">Dinamarca +45</option>
+                        <option value="+1767">Dominica +1767</option>
+                        <option value="+593">Ecuador +593</option>
+                        <option value="+20">Egipto +20</option>
+                        <option value="+503">El Salvador +503</option>
+                        <option value="+971">Emiratos Árabes Unidos +971</option>
+                        <option value="+291">Eritrea +291</option>
+                        <option value="+421">Eslovaquia +421</option>
+                        <option value="+386">Eslovenia +386</option>
+                        <option value="+34" selected>España +34</option>
+                        <option value="+1">Estados Unidos +1</option>
+                        <option value="+372">Estonia +372</option>
+                        <option value="+268">Esuatini (Suazilandia) +268</option>
+                        <option value="+251">Etiopía +251</option>
+                        <option value="+63">Filipinas +63</option>
+                        <option value="+358">Finlandia +358</option>
+                        <option value="+679">Fiyi +679</option>
+                        <option value="+33">Francia +33</option>
+                        <option value="+241">Gabón +241</option>
+                        <option value="+220">Gambia +220</option>
+                        <option value="+995">Georgia +995</option>
+                        <option value="+233">Ghana +233</option>
+                        <option value="+1473">Granada +1473</option>
+                        <option value="+30">Grecia +30</option>
+                        <option value="+502">Guatemala +502</option>
+                        <option value="+224">Guinea +224</option>
+                        <option value="+245">Guinea-Bisáu +245</option>
+                        <option value="+240">Guinea Ecuatorial +240</option>
+                        <option value="+592">Guyana +592</option>
+                        <option value="+509">Haití +509</option>
+                        <option value="+504">Honduras +504</option>
+                        <option value="+36">Hungría +36</option>
+                        <option value="+91">India +91</option>
+                        <option value="+62">Indonesia +62</option>
+                        <option value="+964">Irak +964</option>
+                        <option value="+98">Irán +98</option>
+                        <option value="+353">Irlanda +353</option>
+                        <option value="+354">Islandia +354</option>
+                        <option value="+692">Islas Marshall +692</option>
+                        <option value="+677">Islas Salomón +677</option>
+                        <option value="+972">Israel +972</option>
+                        <option value="+39">Italia +39</option>
+                        <option value="+1876">Jamaica +1876</option>
+                        <option value="+81">Japón +81</option>
+                        <option value="+962">Jordania +962</option>
+                        <option value="+7">Kazajistán +7</option>
+                        <option value="+254">Kenia +254</option>
+                        <option value="+996">Kirguistán +996</option>
+                        <option value="+686">Kiribati +686</option>
+                        <option value="+965">Kuwait +965</option>
+                        <option value="+856">Laos +856</option>
+                        <option value="+266">Lesoto +266</option>
+                        <option value="+371">Letonia +371</option>
+                        <option value="+961">Líbano +961</option>
+                        <option value="+231">Liberia +231</option>
+                        <option value="+218">Libia +218</option>
+                        <option value="+423">Liechtenstein +423</option>
+                        <option value="+370">Lituania +370</option>
+                        <option value="+352">Luxemburgo +352</option>
+                        <option value="+389">Macedonia del Norte +389</option>
+                        <option value="+261">Madagascar +261</option>
+                        <option value="+60">Malasia +60</option>
+                        <option value="+265">Malaui +265</option>
+                        <option value="+960">Maldivas +960</option>
+                        <option value="+223">Malí +223</option>
+                        <option value="+356">Malta +356</option>
+                        <option value="+212">Marruecos +212</option>
+                        <option value="+230">Mauricio +230</option>
+                        <option value="+222">Mauritania +222</option>
+                        <option value="+52">México +52</option>
+                        <option value="+691">Micronesia +691</option>
+                        <option value="+373">Moldavia +373</option>
+                        <option value="+377">Mónaco +377</option>
+                        <option value="+976">Mongolia +976</option>
+                        <option value="+382">Montenegro +382</option>
+                        <option value="+258">Mozambique +258</option>
+                        <option value="+264">Namibia +264</option>
+                        <option value="+674">Nauru +674</option>
+                        <option value="+977">Nepal +977</option>
+                        <option value="+505">Nicaragua +505</option>
+                        <option value="+227">Níger +227</option>
+                        <option value="+234">Nigeria +234</option>
+                        <option value="+47">Noruega +47</option>
+                        <option value="+64">Nueva Zelanda +64</option>
+                        <option value="+968">Omán +968</option>
+                        <option value="+31">Países Bajos +31</option>
+                        <option value="+92">Pakistán +92</option>
+                        <option value="+680">Palaos +680</option>
+                        <option value="+507">Panamá +507</option>
+                        <option value="+675">Papúa Nueva Guinea +675</option>
+                        <option value="+595">Paraguay +595</option>
+                        <option value="+51">Perú +51</option>
+                        <option value="+48">Polonia +48</option>
+                        <option value="+351">Portugal +351</option>
+                        <option value="+44">Reino Unido +44</option>
+                        <option value="+236">República Centroafricana +236</option>
+                        <option value="+420">República Checa +420</option>
+                        <option value="+1809">República Dominicana +1809</option>
+                        <option value="+250">Ruanda +250</option>
+                        <option value="+40">Rumanía +40</option>
+                        <option value="+7">Rusia +7</option>
+                        <option value="+685">Samoa +685</option>
+                        <option value="+1869">San Cristóbal y Nieves +1869</option>
+                        <option value="+378">San Marino +378</option>
+                        <option value="+1784">San Vicente y las Granadinas +1784</option>
+                        <option value="+1758">Santa Lucía +1758</option>
+                        <option value="+239">Santo Tomé y Príncipe +239</option>
+                        <option value="+221">Senegal +221</option>
+                        <option value="+381">Serbia +381</option>
+                        <option value="+248">Seychelles +248</option>
+                        <option value="+232">Sierra Leona +232</option>
+                        <option value="+65">Singapur +65</option>
+                        <option value="+963">Siria +963</option>
+                        <option value="+252">Somalia +252</option>
+                        <option value="+94">Sri Lanka +94</option>
+                        <option value="+27">Sudáfrica +27</option>
+                        <option value="+249">Sudán +249</option>
+                        <option value="+211">Sudán del Sur +211</option>
+                        <option value="+46">Suecia +46</option>
+                        <option value="+41">Suiza +41</option>
+                        <option value="+597">Surinam +597</option>
+                        <option value="+66">Tailandia +66</option>
+                        <option value="+255">Tanzania +255</option>
+                        <option value="+992">Tayikistán +992</option>
+                        <option value="+670">Timor Oriental +670</option>
+                        <option value="+228">Togo +228</option>
+                        <option value="+676">Tonga +676</option>
+                        <option value="+1868">Trinidad y Tobago +1868</option>
+                        <option value="+216">Túnez +216</option>
+                        <option value="+993">Turkmenistán +993</option>
+                        <option value="+90">Turquía +90</option>
+                        <option value="+688">Tuvalu +688</option>
+                        <option value="+380">Ucrania +380</option>
+                        <option value="+256">Uganda +256</option>
+                        <option value="+598">Uruguay +598</option>
+                        <option value="+998">Uzbekistán +998</option>
+                        <option value="+678">Vanuatu +678</option>
+                        <option value="+58">Venezuela +58</option>
+                        <option value="+84">Vietnam +84</option>
+                        <option value="+967">Yemen +967</option>
+                        <option value="+253">Yibuti +253</option>
+                        <option value="+260">Zambia +260</option>
+                        <option value="+263">Zimbabue +263</option>
+                      </select>
+                    </div>
+                    <input type="tel" id="telefono" name="telefono" class="phone-group__number" placeholder="600 000 000" />
+                  </div>
+                </div>
+              </div>
+
+              <p class="booking__account-hint">
+                No hace falta contraseña. Si quieres volver a hacer una reserva, puedes utilizar el sistema de autorrelleno.
+              </p>
+            </div>
+          )}
+        </div>
+
+        <!-- 3. Final step -->
+        <div class="booking__card">
+          <h2 class="booking__card-title"><span class="booking__num">03</span>Último paso</h2>
+          <label class="checkbox-row">
+            <input type="checkbox" id="terminos" name="terminos" required />
+            <span>He leído y acepto las <a href="#terminos">Condiciones de reserva</a></span>
+          </label>
+          <p class="booking__fineprint">
+            Al confirmar, reservamos tu plaza para la ruta y fecha elegidas. Te enviaremos tu
+            ticket por correo.
+          </p>
+          <p class="booking__form-error is-hidden" id="form-error" role="alert"></p>
+        </div>
+
+          <button type="submit" form="booking-form" class="btn orange-btn summary__cta" id="submit-btn-2">
+            Confirmar reserva
+          </button>
+      </form>
+      
+
+      <!-- ============ SUMMARY COLUMN ============ -->
+      <aside class="summary" aria-live="polite">
+        <div class="summary__inner">
+          <h2 class="summary__title">Resumen de tu reserva</h2>
+
+          <dl class="summary__list">
+            <div class="summary__row summary__row--tour">
+              <dt>Ruta</dt>
+              <dd id="s-tour">—</dd>
+            </div>
+            <div class="summary__row">
+              <dt>Fecha</dt>
+              <dd id="s-fecha">—</dd>
+            </div>
+            <div class="summary__row">
+              <dt>Hora</dt>
+              <dd id="s-hora">—</dd>
+            </div>
+            <div class="summary__row">
+              <dt>Adultos</dt>
+              <dd id="s-guests">2</dd>
+            </div>
+            <div class="summary__row">
+              <dt>Niños</dt>
+              <dd id="s-children">0</dd>
+            </div>
+            <div class="summary__row">
+              <dt>Bebés</dt>
+              <dd id="s-babies">0</dd>
+            </div>
+            <div class="summary__row">
+              <dt>Mascotas</dt>
+              <dd id="s-pets">0</dd>
+            </div>
+            <div class="summary__row">
+              <dt><h2>Precio</h2></dt>
+              <dd id="s-pets"><h2>0.00€</h2></dd>
+            </div>
+          </dl>
+
+          <div class="summary__divider"></div>
+
+          <button type="submit" form="booking-form" class="btn orange-btn summary__cta" id="submit-btn">
+            Confirmar reserva
+          </button>
+          <p class="summary__note">Tour gratuito — no se te cobrará nada.</p>
+        </div>
+      </aside>
+    </div>
+    )}
+  </div>
+</section>
+
+<style>
+  .field-row--pets {
+    margin-top: 35px;
+  }
+
+  .field-row--email {
+    margin-top: 35px;
+  }
+
+  .booking {
+    background: var(--parchment);
+    padding-block: 56px 100px;
+  }
+
+  .booking__eyebrow { color: var(--russet); }
+
+  .booking__title {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(2rem, 3.6vw, 2.9rem);
+    margin: 10px 0 8px;
+    color: var(--ink);
+  }
+
+  .booking__subtitle {
+    font-size: 0.95rem;
+    color: #5a6b5c;
+    margin: 0 0 28px;
+  }
+
+  .booking__notice {
+    font-size: 0.95rem;
+    color: #5a6b5c;
+    background: var(--cream);
+    border: 1px solid rgba(24, 34, 25, 0.12);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    margin: 0 0 32px;
+  }
+
+  .booking__grid {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 32px;
+    align-items: start;
+  }
+
+  .booking__form {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .booking__card {
+    background: var(--cream);
+    border: 1px solid rgba(24, 34, 25, 0.1);
+    border-top: 3px solid var(--gold);
+    border-radius: var(--radius);
+    padding: 30px 30px 32px;
+  }
+
+  .booking__card-title {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 1.25rem;
+    color: var(--ink);
+    margin: 0 0 22px;
+  }
+
+  .booking__num {
+    font-family: var(--font-body);
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    color: var(--gold);
+    border: 1px solid var(--line);
+    border-radius: 50%;
+    width: 26px;
+    height: 26px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .field { margin-bottom: 18px; }
+  .field:last-child { margin-bottom: 0; }
+
+  .field-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+  }
+
+  .field-row--three {
+    margin-top: 20px;
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  label {
+    display: block;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #4a5b4c;
+    margin-bottom: 7px;
+  }
+  label em {
+    font-style: normal;
+    color: var(--russet);
+    margin-left: 2px;
+  }
+  .field__optional {
+    font-weight: 400;
+    color: #8a8272;
+  }
+
+  .field__notice {
+    margin: -6px 0 0;
+    font-size: 0.82rem;
+    line-height: 1.5;
+    color: var(--russet);
+  }
+  .field__notice.is-hidden { display: none; }
+  .field__notice--ok { color: #2e5c30; }
+
+  input[type="text"],
+  input[type="email"],
+  input[type="tel"],
+  input[type="number"],
+  select {
+    width: 100%;
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    color: var(--ink);
+    background: var(--cream);
+    border: 1px solid rgba(24, 34, 25, 0.22);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  input:focus, select:focus {
+    outline: none;
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px rgba(233, 151, 10, 0.16);
+  }
+
+  select:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .phone-group {
+    display: flex;
+    gap: 8px;
+  }
+  .phone-group__prefix-wrap {
+    flex: 0 0 148px;
+  }
+  .phone-group__prefix {
+    padding-right: 30px;
+  }
+  .phone-group__number {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .select-wrap { position: relative; }
+  select { appearance: none; padding-right: 34px; cursor: pointer; }
+  .select-wrap::after {
+    content: "";
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    width: 8px;
+    height: 8px;
+    border-right: 1.6px solid var(--russet);
+    border-bottom: 1.6px solid var(--russet);
+    transform: translateY(-70%) rotate(45deg);
+    pointer-events: none;
+  }
+
+  .stepper {
+    display: flex;
+    align-items: center;
+    border: 1px solid rgba(24, 34, 25, 0.22);
+    border-radius: var(--radius);
+    overflow: hidden;
+    width: fit-content;
+  }
+  .stepper__btn {
+    width: 40px;
+    height: 44px;
+    border: none;
+    background: var(--parchment-alt);
+    color: var(--ink);
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: background 0.2s ease;
+  }
+  .stepper__btn:hover { background: var(--gold-soft); }
+  .stepper__btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .stepper input {
+    width: 56px;
+    height: 44px;
+    text-align: center;
+    border: none;
+    border-left: 1px solid rgba(24, 34, 25, 0.14);
+    border-right: 1px solid rgba(24, 34, 25, 0.14);
+    border-radius: 0;
+    background: var(--cream);
+  }
+
+  .checkbox-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 0.92rem;
+    color: var(--ink);
+    margin-bottom: 12px;
+    cursor: pointer;
+  }
+  .checkbox-row input { margin-top: 3px; accent-color: var(--gold); }
+  .checkbox-row a { color: var(--russet); text-decoration: underline; }
+
+  .booking__fineprint {
+    font-size: 0.8rem;
+    line-height: 1.55;
+    color: #7a7562;
+    margin: 0;
+  }
+
+  .booking__form-error {
+    margin-top: 16px;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: #7a2e1f;
+    background: rgba(158, 73, 54, 0.1);
+    border-left: 3px solid var(--russet);
+    padding: 10px 14px;
+    border-radius: var(--radius);
+  }
+  .booking__form-error.is-hidden { display: none; }
+
+  /* ---------- Logged-in account summary (replaces guest fields) ---------- */
+  .booking__account {
+    background: var(--parchment-alt);
+    border: 1px dashed rgba(24, 34, 25, 0.18);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+  }
+  .booking__account-label {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #7a7562;
+    margin: 0 0 4px;
+  }
+  .booking__account-name {
+    font-weight: 600;
+    color: var(--ink);
+    margin: 0 0 2px;
+  }
+  .booking__account-email {
+    font-size: 0.88rem;
+    color: #5a6b5c;
+    margin: 0 0 10px;
+  }
+  .booking__account-hint {
+    font-size: 0.82rem;
+    color: #7a7562;
+    line-height: 1.5;
+    margin: 14px 0 0;
+  }
+
+  .link-btn {
+    background: none;
+    border: none;
+    font-family: var(--font-body);
+    font-size: 0.82rem;
+    color: var(--russet);
+    cursor: pointer;
+    padding: 4px 0;
+  }
+  .link-btn:hover { text-decoration: underline; }
+  .link-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* ---------- Summary ("ticket") — recolored to match the confirmation ticket ---------- */
+  .summary {
+    position: sticky;
+    top: 96px;
+  }
+  .summary__inner {
+    background: rgb(255, 239, 200);
+    color: rgb(0, 0, 0);
+    border-radius: var(--radius);
+    padding: 30px 28px 32px;
+    overflow: hidden;
+  }
+  .summary__title {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 600;
+    font-size: 1.2rem;
+    color: #fff7ec;
+    background: #E8791A;
+    margin: -30px -28px 20px -28px;
+    padding: 16px 28px;
+  }
+  .summary__list { margin: 0; }
+  .summary__row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 0.88rem;
+    padding: 9px 0;
+    border-bottom: 1px dashed rgb(2, 2, 2);
+  }
+  .summary__row:last-child { border-bottom: none; }
+  .summary__row dt { color: rgba(0, 0, 0, 0.6); margin: 0; font-weight: 400; }
+  .summary__row dd { margin: 0; color: rgb(0, 0, 0); font-weight: 500; text-align: right; }
+
+  .summary__row--tour {
+    background: var(--forest-deep);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    margin: 0 0 8px;
+    border-bottom: none;
+  }
+  .summary__row--tour dt {
+    color: rgba(242, 234, 215, 0.75);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    font-size: 0.72rem;
+    font-weight: 600;
+  }
+  .summary__row--tour dd {
+    color: #fff7ec;
+    font-weight: 700;
+    font-size: 1.05rem;
+  }
+
+  .summary__divider {
+    height: 1px;
+    background: rgba(2, 2, 2, 0.15);
+    margin: 18px 0;
+  }
+
+  .summary__cta {
+    width: 100%;
+    justify-content: center;
+    margin-top: 22px;
+    font-size: 0.95rem;
+  }
+  .summary__cta:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .summary__note {
+    text-align: center;
+    font-size: 0.74rem;
+    color: rgba(0, 0, 0, 0.55);
+    margin: 12px 0 0;
+  }
+
+  @media (max-width: 980px) {
+    .booking__grid { grid-template-columns: 1fr; }
+    .summary { position: static; }
+  }
+
+  @media (max-width: 640px) {
+    .field-row { grid-template-columns: 1fr; }
+    .booking__card { padding: 24px 20px 26px; }
+  }
+</style>
+
+<script>
+  const form = document.getElementById('booking-form') as HTMLFormElement | null;
+
+  if (form) {
+    const isAuthenticated = form.dataset.authenticated === 'true';
+
+    const tourSelect = document.getElementById('tour') as HTMLSelectElement;
+    const fechaSelect = document.getElementById('fecha') as HTMLSelectElement;
+    const horaSelect = document.getElementById('hora') as HTMLSelectElement;
+
+    const guestsInput = document.getElementById('guests') as HTMLInputElement;
+    const guestsMinus = document.getElementById('guests-minus') as HTMLButtonElement;
+    const guestsPlus = document.getElementById('guests-plus') as HTMLButtonElement;
+
+    const childrenInput = document.getElementById('children') as HTMLInputElement;
+    const childrenMinus = document.getElementById('children-minus') as HTMLButtonElement;
+    const childrenPlus = document.getElementById('children-plus') as HTMLButtonElement;
+
+    const babiesInput = document.getElementById('babies') as HTMLInputElement;
+    const babiesMinus = document.getElementById('babies-minus') as HTMLButtonElement;
+    const babiesPlus = document.getElementById('babies-plus') as HTMLButtonElement;
+
+    const petsInput = document.getElementById('pets') as HTMLInputElement;
+    const petsMinus = document.getElementById('pets-minus') as HTMLButtonElement;
+    const petsPlus = document.getElementById('pets-plus') as HTMLButtonElement;
+
+    const sPets = document.getElementById('s-pets')!;
+
+    // Two "Confirmar reserva" buttons on the page (bottom of the form and
+    // in the sticky summary) — keep both in sync everywhere.
+    const submitBtns = Array.from(
+      document.querySelectorAll<HTMLButtonElement>('#submit-btn, #submit-btn-2')
+    );
+    const formError = document.getElementById('form-error') as HTMLParagraphElement;
+    const availabilityNotice = document.getElementById('availability-notice') as HTMLParagraphElement;
+
+    // Only present when the visitor isn't logged in.
+    const nombreInput = document.getElementById('nombre') as HTMLInputElement | null;
+    const apellidosInput = document.getElementById('apellidos') as HTMLInputElement | null;
+    const emailInput = document.getElementById('email') as HTMLInputElement | null;
+    const prefijoSelect = document.getElementById('prefijo') as HTMLSelectElement | null;
+    const telefonoInput = document.getElementById('telefono') as HTMLInputElement | null;
+
+    const sTour = document.getElementById('s-tour')!;
+    const sFecha = document.getElementById('s-fecha')!;
+    const sHora = document.getElementById('s-hora')!;
+    const sGuests = document.getElementById('s-guests')!;
+    const sChildren = document.getElementById('s-children')!;
+    const sBabies = document.getElementById('s-babies')!;
+
+    // Cache of schedules already fetched per tour, keyed by tour id.
+    const scheduleCache = new Map<string, { id: string; time: string }[]>();
+    let scheduleRequestToken = 0;
+
+    // Cache of the calendar dates a tour is actually offered on, keyed by
+    // tour id. These come from GET /tours/:id/dates — a booking must
+    // reference one of these rows by id (tourDateId), not a free-typed date.
+    const dateCache = new Map<string, { id: string; date: string }[]>();
+    let dateRequestToken = 0;
+
+    // Cache of availability checks, keyed by tour+dateId+scheduleId. This is
+    // a best-effort hint for the UI — the server still enforces it
+    // authoritatively when the booking is actually submitted.
+    const availabilityCache = new Map<string, { remaining: number | null; capacity: number | null }>();
+    let currentAvailability: { remaining: number | null; capacity: number | null } | null = null;
+    let availabilityRequestToken = 0;
+
+    const formatDate = (value: string) => {
+      const datePart = value.includes("T") ? value.split("T")[0] : value;
+      return new Date(datePart + "T00:00:00").toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" });
+    };
+
+    // tour_schedules.time comes back from the API as "HH:MM:SS" — trim
+    // the seconds for display.
+    const formatTime = (value: string) => value?.slice(0, 5) ?? value;
+
+    function getCurrentCapacity(): number {
+      const selected = tourSelect.selectedOptions[0];
+      const cap = Number(selected?.dataset.capacity);
+      const tourCapacity = Number.isFinite(cap) && cap > 0 ? cap : 15; // fallback if no tour selected yet
+
+      if (currentAvailability && currentAvailability.remaining !== null) {
+        return Math.max(Math.min(tourCapacity, currentAvailability.remaining), 0);
+      }
+      return tourCapacity;
+    }
+
+    async function loadDatesForSelectedTour() {
+      const tourId = tourSelect.value;
+      const thisRequest = ++dateRequestToken;
+
+      fechaSelect.innerHTML = '';
+      if (!tourId) {
+        fechaSelect.disabled = true;
+        fechaSelect.append(new Option('Elige primero una ruta', ''));
+        updateSummary();
+        return;
+      }
+
+      fechaSelect.disabled = true;
+      fechaSelect.append(new Option('Cargando fechas…', ''));
+
+      let dates = dateCache.get(tourId);
+      if (!dates) {
+        try {
+          const res = await fetch(`/api/tours/${tourId}/dates`);
+          if (!res.ok) throw new Error('Failed to load dates');
+          dates = await res.json();
+          dateCache.set(tourId, dates ?? []);
+        } catch {
+          dates = [];
+        }
+      }
+
+      if (thisRequest !== dateRequestToken) return;
+
+      fechaSelect.innerHTML = '';
+      if (!dates || dates.length === 0) {
+        fechaSelect.disabled = true;
+        fechaSelect.append(new Option('No hay fechas disponibles para esta ruta', ''));
+        updateSummary();
+        return;
+      }
+
+      fechaSelect.disabled = false;
+      fechaSelect.append(new Option('Elige una fecha', '', true, true));
+      fechaSelect.options[0].disabled = true;
+      for (const d of dates) {
+        fechaSelect.append(new Option(formatDate(d.date), d.id));
+      }
+      updateSummary();
+    }
+
+    async function loadSchedulesForSelectedTour() {
+      const tourId = tourSelect.value;
+      const thisRequest = ++scheduleRequestToken;
+
+      horaSelect.innerHTML = '';
+      if (!tourId) {
+        horaSelect.disabled = true;
+        horaSelect.append(new Option('Elige primero una ruta', ''));
+        updateSummary();
+        return;
+      }
+
+      horaSelect.disabled = true;
+      horaSelect.append(new Option('Cargando horarios…', ''));
+
+      let schedules = scheduleCache.get(tourId);
+      if (!schedules) {
+        try {
+          const res = await fetch(`/api/tours/${tourId}/schedules`);
+          if (!res.ok) throw new Error('Failed to load schedules');
+          schedules = await res.json();
+          scheduleCache.set(tourId, schedules ?? []);
+        } catch {
+          schedules = [];
+        }
+      }
+
+      if (thisRequest !== scheduleRequestToken) return;
+
+      horaSelect.innerHTML = '';
+      if (!schedules || schedules.length === 0) {
+        horaSelect.disabled = true;
+        horaSelect.append(new Option('No hay horarios disponibles para esta ruta', ''));
+        updateSummary();
+        return;
+      }
+
+      horaSelect.disabled = false;
+      horaSelect.append(new Option('Elige una hora', '', true, true));
+      horaSelect.options[0].disabled = true;
+      for (const schedule of schedules) {
+        horaSelect.append(new Option(formatTime(schedule.time), schedule.id));
+      }
+      updateSummary();
+    }
+
+    async function checkAvailability() {
+      const tourId = tourSelect.value;
+      const dateId = fechaSelect.value;
+      const scheduleId = horaSelect.value;
+      const thisRequest = ++availabilityRequestToken;
+
+      if (!tourId || !dateId || !scheduleId) {
+        currentAvailability = null;
+        availabilityNotice.classList.add('is-hidden');
+        updateSummary();
+        return;
+      }
+
+      const cacheKey = `${tourId}|${dateId}|${scheduleId}`;
+      let availability = availabilityCache.get(cacheKey);
+
+      if (!availability) {
+        try {
+          const res = await fetch(
+            `/api/tours/${tourId}/availability?dateId=${encodeURIComponent(dateId)}&scheduleId=${encodeURIComponent(scheduleId)}`
+          );
+          if (!res.ok) throw new Error('Failed to load availability');
+          availability = await res.json();
+          availabilityCache.set(cacheKey, availability!);
+        } catch {
+          if (thisRequest === availabilityRequestToken) {
+            currentAvailability = null;
+            availabilityNotice.classList.add('is-hidden');
+            updateSummary();
+          }
+          return;
+        }
+      }
+
+      if (thisRequest !== availabilityRequestToken) return;
+
+      currentAvailability = availability!;
+
+      if (availability!.remaining !== null) {
+        if (availability!.remaining <= 0) {
+          availabilityNotice.textContent = 'No quedan plazas para esta fecha y hora. Elige otra.';
+          availabilityNotice.classList.remove('is-hidden', 'field__notice--ok');
+        } else if (availability!.remaining <= 5) {
+          availabilityNotice.textContent = `Solo quedan ${availability!.remaining} plaza(s) para esta salida.`;
+          availabilityNotice.classList.remove('is-hidden');
+          availabilityNotice.classList.add('field__notice--ok');
+        } else {
+          availabilityNotice.classList.add('is-hidden');
+        }
+      } else {
+        availabilityNotice.classList.add('is-hidden');
+      }
+
+      updateSummary();
+    }
+
+    // Only adults occupy a reserved spot — children, babies, and pets don't
+    // count against capacity (mirrors the backend's `quantity`-only rule).
+    function updateSummary() {
+      const selected = tourSelect.selectedOptions[0];
+      const hasTour = Boolean(selected?.value);
+
+      const capacity = getCurrentCapacity();
+      const effectiveMax = Math.max(capacity, 1);
+
+      let guests = Number(guestsInput.value || 1);
+      if (guests > effectiveMax) {
+        guests = effectiveMax;
+        guestsInput.value = String(guests);
+      }
+      guestsInput.max = String(effectiveMax);
+
+      const children = Number(childrenInput.value || 0);
+      const babies = Number(babiesInput.value || 0);
+      const pets = Number(petsInput.value || 0);
+
+      const selectedSchedule = horaSelect.selectedOptions[0];
+      const selectedDate = fechaSelect.selectedOptions[0];
+      const soldOut = Boolean(
+        currentAvailability && currentAvailability.remaining !== null && currentAvailability.remaining <= 0
+      );
+
+      sTour.textContent = hasTour ? selected!.textContent ?? '' : '—';
+      sFecha.textContent = selectedDate?.value ? selectedDate.textContent ?? '—' : '—';
+      sHora.textContent = selectedSchedule?.value ? selectedSchedule.textContent ?? '—' : '—';
+      sGuests.textContent = String(guests);
+      sChildren.textContent = String(children);
+      sBabies.textContent = String(babies);
+      sPets.textContent = String(pets);
+
+      const guestsFull = guests >= effectiveMax;
+      submitBtns.forEach((btn) => { btn.disabled = soldOut; });
+      guestsPlus.disabled = soldOut || guestsFull;
+    }
+
+    guestsMinus.addEventListener('click', () => {
+      guestsInput.value = String(Math.max(1, Number(guestsInput.value) - 1));
+      updateSummary();
+    });
+    guestsPlus.addEventListener('click', () => {
+      const max = getCurrentCapacity();
+      if (max < 1) return; // sold out — nothing to add
+      guestsInput.value = String(Math.min(max, Number(guestsInput.value) + 1));
+      updateSummary();
+    });
+
+    childrenMinus.addEventListener('click', () => {
+      childrenInput.value = String(Math.max(0, Number(childrenInput.value) - 1));
+      updateSummary();
+    });
+    childrenPlus.addEventListener('click', () => {
+      childrenInput.value = String(Math.min(15, Number(childrenInput.value) + 1));
+      updateSummary();
+    });
+
+    babiesMinus.addEventListener('click', () => {
+      babiesInput.value = String(Math.max(0, Number(babiesInput.value) - 1));
+      updateSummary();
+    });
+    babiesPlus.addEventListener('click', () => {
+      babiesInput.value = String(Math.min(10, Number(babiesInput.value) + 1));
+      updateSummary();
+    });
+
+    petsMinus.addEventListener('click', () => {
+      petsInput.value = String(Math.max(0, Number(petsInput.value) - 1));
+      updateSummary();
+    });
+    petsPlus.addEventListener('click', () => {
+      petsInput.value = String(Math.min(5, Number(petsInput.value) + 1));
+      updateSummary();
+    });
+
+    tourSelect.addEventListener('change', () => {
+      currentAvailability = null;
+      availabilityNotice.classList.add('is-hidden');
+      loadDatesForSelectedTour();
+      loadSchedulesForSelectedTour();
+    });
+    [fechaSelect, horaSelect].forEach((el) =>
+      el.addEventListener('change', () => {
+        updateSummary();
+        checkAvailability();
+      })
+    );
+
+    function showError(message: string) {
+      formError.textContent = message;
+      formError.classList.remove('is-hidden');
+    }
+    function clearError() {
+      formError.textContent = '';
+      formError.classList.add('is-hidden');
+    }
+    function setSubmitting(isSubmitting: boolean) {
+      submitBtns.forEach((btn) => {
+        btn.disabled = isSubmitting;
+        btn.textContent = isSubmitting ? 'Confirmando…' : 'Confirmar reserva';
+      });
+    }
+
+    async function submitBooking(payload: Record<string, unknown>) {
+      try {
+        const res = await fetch('/api/bookings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          return { ok: false as const, message: data?.message ?? 'No se ha podido completar la reserva.' };
+        }
+        return { ok: true as const, data };
+      } catch {
+        return {
+          ok: false as const,
+          message: 'No se ha podido conectar con el servidor. Comprueba tu conexión e inténtalo de nuevo.'
+        };
+      }
+    }
+
+    document.getElementById('logout-btn')?.addEventListener('click', async () => {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      window.location.reload();
+    });
+
+    // --- Main submit ---
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearError();
+
+      if (!tourSelect.value) {
+        showError('Selecciona una ruta.');
+        return;
+      }
+      if (!fechaSelect.value) {
+        showError('Selecciona una fecha.');
+        return;
+      }
+      if (!horaSelect.value) {
+        showError('Selecciona una hora de inicio.');
+        return;
+      }
+
+      const guests = Number(guestsInput.value);
+      const children = Number(childrenInput.value);
+      const babies = Number(babiesInput.value);
+      const pets = Number(petsInput.value);
+      const partySize = guests; // only adults occupy a reserved spot
+
+      if (currentAvailability && currentAvailability.remaining !== null) {
+        if (currentAvailability.remaining <= 0) {
+          showError('No quedan plazas para esta fecha y hora. Elige otra.');
+          return;
+        }
+        if (partySize > currentAvailability.remaining) {
+          showError(`Solo quedan ${currentAvailability.remaining} plaza(s) para esta salida.`);
+          return;
+        }
+      }
+
+      const bookingPayload = {
+        tourId: tourSelect.value,
+        tourDateId: fechaSelect.value,
+        tourScheduleId: horaSelect.value,
+        guests,
+        numberOfChildren: children,
+        numberOfBabies: babies,
+        numberOfPets: pets
+      };
+
+      if (isAuthenticated) {
+        setSubmitting(true);
+        const result = await submitBooking(bookingPayload);
+        if (result.ok) {
+          window.location.href = `/reserva-confirmada?booking=${result.data.id}`;
+        } else {
+          showError(result.message);
+          setSubmitting(false);
+        }
+        return;
+      }
+
+      // Guest flow — no confirmation code on this backend: log the visitor
+      // in (or register them on the spot) using the details they gave,
+      // then submit the booking straight away.
+      if (!nombreInput?.value.trim()) {
+        showError('Introduce tu nombre.');
+        return;
+      }
+      const apellidos = apellidosInput?.value.trim();
+      const email = emailInput?.value.trim() ?? '';
+      if (!email) {
+        showError('Introduce tu correo electrónico.');
+        return;
+      }
+      const telefonoDigits = telefonoInput?.value.trim() ?? '';
+      if (!telefonoDigits) {
+        showError('Introduce tu número de teléfono móvil.');
+        return;
+      }
+      // Concatenate the chosen country prefix (e.g. "+34") with the digits
+      // the visitor typed, so the backend gets one complete E.164-ish number.
+      const prefijo = prefijoSelect?.value ?? '';
+      const telefono = `${prefijo}${telefonoDigits.replace(/[\s-]+/g, '')}`;
+
+      setSubmitting(true);
+      try {
+        let authRes = await fetch('/api/auth/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email,
+            fullName: `${nombreInput.value} ${apellidos}`.trim(),
+            phone: telefono || undefined
+          })
+        });
+        let authData = await authRes.json();
+
+        // Registration fails with 409 when an account already exists for
+        // this email (e.g. the visitor hit "¿No eres tú?" and then
+        // re-entered their own address) — the backend's message literally
+        // says to use /auth/login instead, so do that automatically
+        // rather than surfacing the error and making them retry by hand.
+        if (!authRes.ok && authRes.status === 409) {
+          authRes = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email })
+          });
+          authData = await authRes.json();
+        }
+
+        if (!authRes.ok) throw new Error(authData?.message || 'No se ha podido continuar.');
+
+        const result = await submitBooking(bookingPayload);
+        if (!result.ok) throw new Error(result.message);
+
+        window.location.href = `/reserva-confirmada?booking=${result.data.id}`;
+      } catch (err: any) {
+        showError(err?.message || 'No se ha podido completar la reserva.');
+        setSubmitting(false);
+      }
+    });
+
+    if (tourSelect.value) {
+      loadDatesForSelectedTour();
+      loadSchedulesForSelectedTour();
+    } else {
+      updateSummary();
+    }
+  }
+</script>

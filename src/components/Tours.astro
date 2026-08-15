@@ -1,0 +1,321 @@
+---
+import { getTourGallery, getTours, getRandomReviews } from "@/lib/api.js";
+import ReviewCard from "@/components/ReviewCard.astro";
+
+interface ApiTour {
+  id: string;
+  name: string;
+  description: string;
+  duration_hours: number | null;
+  capacity: number | null;
+  is_active: boolean;
+}
+
+interface TourWithCover extends ApiTour {
+  cover: string | null;
+}
+
+interface ApiReview {
+  id: string;
+  stars: number;
+  content: string | null;
+  tour_id: string;
+  customer_id: string;
+  created_at: string;
+  tour_name: string;
+  customer_name: string;
+}
+
+let tours: TourWithCover[] = [];
+let loadError = false;
+
+try {
+  const activeTours: ApiTour[] = await getTours({ active: true });
+  tours = await Promise.all(
+    activeTours.map(async (t) => {
+      try {
+        const gallery = await getTourGallery(t.id);
+
+        return { ...t, cover: gallery[0]?.url ?? null };
+      } catch {
+        // A missing gallery shouldn't take down the whole grid — just show
+        // this one card without a photo.
+        return { ...t, cover: null };
+      }
+    })
+  );
+} catch (err) {
+  console.error('Failed to load tours from the API', err);
+  loadError = true;
+}
+
+// A small, rotating sample of reviews across the whole catalog — the full
+// list for a given tour lives on that tour's own page instead.
+let reviews: ApiReview[] = [];
+let reviewsError = false;
+
+try {
+  reviews = await getRandomReviews({ count: 5 });
+} catch (err) {
+  console.error('Failed to load reviews from the API', err);
+  reviewsError = true;
+}
+---
+
+<section class="tours" id="excursiones">
+  <div class="wrap">
+    <p class="eyebrow tours__eyebrow">Nuestras rutas</p>
+    <h2 class="tours__title">Vive Dublín a pie</h2>
+
+    {loadError && (
+      <p class="tours__notice">
+        No hemos podido cargar las excursiones en este momento. Inténtalo de nuevo más tarde.
+      </p>
+    )}
+
+    {!loadError && tours.length === 0 && (
+      <p class="tours__notice">Todavía no hay excursiones publicadas.</p>
+    )}
+
+    <div class="tours__grid" id="opiniones">
+      {tours.map((t) => (
+        <article class="card reveal" tabindex="0">
+          <div
+            class={`card__media${t.cover ? '' : ' card__media--empty'}`}
+            style={t.cover ? `background-image:url(${t.cover})` : undefined}
+          >
+            <div class="card__media-scrim"></div>
+            <h3 class="card__media-title">{t.name}</h3>
+            <span class="card__hint">Pasa el cursor para ver más</span>
+          </div>
+
+          <div class="card__overlay">
+            <h3 class="card__name">{t.name}</h3>
+            <p class="card__desc">{t.description}</p>
+            <p class="card__meta">
+              {t.duration_hours ? `${t.duration_hours} h` : "Duración flexible"}
+              {t.capacity ? ` · hasta ${t.capacity} personas` : ""}
+            </p>
+
+            <div class="card__actions">
+              <a href={`/tours/${t.id}`}><button class="btn btn-ghost black-color-05">VER RUTA</button></a>
+              <a href={`/reservar?tour=${t.id}`}><button class="btn orange-btn">RESERVAR</button></a>
+            </div>
+          </div>
+        </article>
+      ))}
+    </div>
+
+    <div id="reviews-section" class="space-top">
+      <p class="eyebrow tours__eyebrow">Reseñas</p>
+      <h2 class="tours__title">Mira lo que piensan otros turistas</h2>
+
+      {reviewsError && (
+        <p class="tours__notice">
+          No hemos podido cargar las reseñas en este momento. Inténtalo de nuevo más tarde.
+        </p>
+      )}
+
+      {!reviewsError && reviews.length === 0 && (
+        <p class="tours__notice">Todavía no hay reseñas publicadas.</p>
+      )}
+
+      <div class="tours__grid" id="reviews">
+        {reviews.map((r) => (
+          <ReviewCard
+            content={r.content}
+            stars={r.stars}
+            customerName={r.customer_name}
+            tourName={r.tour_name}
+          />
+        ))}
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .tours {
+    background: var(--parchment);
+    padding-block: 90px 100px;
+  }
+
+  .space-top { margin-top: 60px; }
+
+  .tours__eyebrow { color: var(--russet); }
+
+  .tours__title {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(2rem, 3.6vw, 2.8rem);
+    margin: 10px 0 44px;
+    color: var(--ink);
+  }
+
+  .black-color-05 {
+    color: rgba(0, 0, 0, 0.5);
+  }
+
+  .tours__notice {
+    font-size: 0.95rem;
+    color: #5a6b5c;
+    background: var(--cream);
+    border: 1px solid rgba(24, 34, 25, 0.12);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    margin: 0 0 32px;
+  }
+
+  .tours__grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 28px;
+  }
+
+  .card {
+    position: relative;
+    height: 440px;
+    border-radius: var(--radius);
+    overflow: hidden;
+    border: 1px solid rgba(24, 34, 25, 0.1);
+    border-top: 3px solid var(--gold);
+    background: var(--cream);
+    opacity: 0;
+    transform: translateY(18px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+    cursor: pointer;
+  }
+  .card.is-visible { opacity: 1; transform: translateY(0); }
+
+  /* ---------- Front: image + title ---------- */
+  .card__media {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: flex-start;
+    padding: 26px 26px 22px;
+    transition: transform 0.6s ease, opacity 0.4s ease;
+  }
+  .card__media--empty {
+    background: linear-gradient(160deg, var(--forest-deep), #2c3d2d);
+  }
+
+  .card__media-scrim {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      to top,
+      rgba(10, 14, 10, 0.88) 0%,
+      rgba(10, 14, 10, 0.25) 55%,
+      rgba(10, 14, 10, 0.15) 100%
+    );
+  }
+
+  .card__media-title {
+    position: relative;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 1.5rem;
+    line-height: 1.2;
+    color: #fff;
+    margin: 0;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+  }
+
+  .card__hint {
+    position: relative;
+    margin-top: 10px;
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--gold);
+    opacity: 0.9;
+  }
+
+  /* ---------- Back: full content, revealed on hover ---------- */
+  .card__overlay {
+    position: absolute;
+    inset: 0;
+    background: var(--cream);
+    padding: 30px 28px 28px;
+    display: flex;
+    flex-direction: column;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+    pointer-events: none;
+  }
+
+  .card:hover .card__overlay,
+  .card:focus-within .card__overlay,
+  .card:focus .card__overlay {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+
+  .card:hover .card__media,
+  .card:focus-within .card__media,
+  .card:focus .card__media {
+    opacity: 0;
+    transform: scale(1.04);
+  }
+
+  .card__name {
+    font-family: var(--font-display);
+    font-size: 1.28rem;
+    margin: 0 0 10px;
+    color: var(--ink);
+  }
+
+  .card__desc {
+    font-size: 0.92rem;
+    line-height: 1.55;
+    color: #3c4a3d;
+    margin: 0 0 12px;
+  }
+
+  .card__meta {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 0.92rem;
+    color: var(--russet);
+    margin: 0 0 20px;
+  }
+
+  .card__actions {
+    margin-top: auto;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding-top: 16px;
+  }
+
+  @media (max-width: 940px) {
+    .tours__grid { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 640px) {
+    .tours__grid { grid-template-columns: 1fr; }
+    .card { height: 400px; }
+  }
+</style>
+
+<script>
+  const items = document.querySelectorAll('.reveal');
+  const io = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-visible');
+          io.unobserve(entry.target);
+        }
+      });
+    },
+    { threshold: 0.15 }
+  );
+  items.forEach((el) => io.observe(el));
+</script>
