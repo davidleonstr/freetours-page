@@ -1,0 +1,478 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Guía de llegada a Dublín — Tours Meriyo Dublín</title>
+<link rel="icon" href="/web-icon-orange.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Work+Sans:wght@400;500;600;700&display=swap"
+  rel="stylesheet"
+/>
+<style>
+  :root{
+    --forest-deep: #16311F;
+    --forest: #234631;
+    --gold: #C7A03C;
+    --gold-soft: #E4CE8C;
+    --cream: #FBF6EA;
+    --parchment: #F1E9D4;
+    --parchment-alt: #F2EAD7;
+    --ink: #1E2A20;
+    --line: rgba(22, 49, 31, 0.16);
+    --rust: #A24A2C;
+    --font-display: "Fraunces", serif;
+    --font-body: "Work Sans", sans-serif;
+  }
+  *{ box-sizing: border-box; }
+  html{ scroll-behavior: smooth; }
+  body{
+    margin:0;
+    background: var(--cream);
+    color: var(--ink);
+    font-family: var(--font-body);
+    line-height: 1.6;
+  }
+  .wrap{ max-width: 880px; margin-inline:auto; padding-inline: 24px; }
+  a{ color: inherit; }
+
+  /* ---- top nav ---- */
+  .nav{
+    position: sticky; top:0; z-index: 20;
+    background: rgba(251,246,234,0.92);
+    backdrop-filter: blur(6px);
+    border-bottom: 1px solid var(--line);
+  }
+  .nav__row{
+    display:flex; align-items:center; justify-content:space-between;
+    padding-block: 14px;
+  }
+  .nav__logo{
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 1.15rem;
+    color: var(--forest-deep);
+    text-decoration:none;
+  }
+  .nav__logo em{ color: var(--gold); font-style: italic; }
+  .nav__back{
+    font-size: 0.82rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--forest);
+    text-decoration:none;
+    border-bottom: 1px solid var(--gold);
+    padding-bottom: 2px;
+  }
+
+  /* ---- hero ---- */
+  .hero{
+    padding-block: 64px 40px;
+    border-bottom: 1px solid var(--line);
+  }
+  .hero__eyebrow{
+    font-size: 0.78rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--rust);
+    font-weight: 600;
+    margin: 0 0 14px;
+  }
+  .hero h1{
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(2.1rem, 5vw, 3.2rem);
+    line-height: 1.08;
+    margin: 0 0 20px;
+    color: var(--forest-deep);
+    max-width: 16ch;
+  }
+  .hero h1 em{ color: var(--gold); font-style: italic; }
+  .hero__lede{
+    font-size: 1.08rem;
+    max-width: 58ch;
+    color: var(--forest);
+    margin: 0;
+  }
+  .hero__img{
+    margin-top: 32px;
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+  }
+  .hero__img img{ width:100%; display:block; }
+  .caption{
+    font-size: 0.8rem;
+    color: rgba(30,42,32,0.6);
+    margin-top: 8px;
+    font-style: italic;
+  }
+
+  /* ---- article ---- */
+  article{ padding-block: 8px 40px; }
+
+  /* the route line: a signature element evoking the walking-tour route,
+     running down the left edge and threading each waypoint marker */
+  .route{
+    position: relative;
+    padding-left: 52px;
+  }
+  .route::before{
+    content:"";
+    position:absolute;
+    left: 19px; top: 6px; bottom: 6px;
+    width: 2px;
+    background-image: linear-gradient(to bottom, var(--gold) 60%, transparent 0%);
+    background-size: 2px 12px;
+    background-repeat: repeat-y;
+  }
+  .waypoint{
+    position: relative;
+    padding-block: 36px;
+    border-bottom: 1px solid var(--line);
+  }
+  .waypoint:last-child{ border-bottom: none; }
+  .waypoint__marker{
+    position:absolute;
+    left: -52px; top: 38px;
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    background: var(--forest-deep);
+    color: var(--gold-soft);
+    display:flex; align-items:center; justify-content:center;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 1rem;
+    border: 2px solid var(--gold);
+  }
+  .waypoint h2{
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 1.55rem;
+    color: var(--forest-deep);
+    margin: 0 0 14px;
+  }
+  .waypoint p{ margin: 0 0 14px; }
+  .waypoint ul, .waypoint ol{ margin: 0 0 14px; padding-left: 1.2em; }
+  .waypoint li{ margin-bottom: 8px; }
+
+  .option-grid{
+    display:grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    margin: 18px 0 20px;
+  }
+  @media (max-width: 620px){ .option-grid{ grid-template-columns: 1fr; } }
+  .option-card{
+    background: var(--parchment);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 16px 18px;
+  }
+  .option-card__name{
+    font-family: var(--font-display);
+    font-weight: 600;
+    color: var(--forest-deep);
+    font-size: 1.02rem;
+    margin: 0 0 4px;
+  }
+  .option-card__meta{
+    font-size: 0.82rem;
+    color: var(--rust);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    margin: 0 0 8px;
+  }
+  .option-card p{ font-size: 0.92rem; margin:0; color: var(--ink); }
+
+  figure{ margin: 22px 0 8px; }
+  figure img{
+    width:100%; display:block; border-radius: 4px; border: 1px solid var(--line);
+  }
+
+  .tip-box{
+    background: var(--forest-deep);
+    color: var(--parchment-alt);
+    border-radius: 4px;
+    padding: 18px 20px;
+    margin-top: 18px;
+    font-size: 0.94rem;
+  }
+  .tip-box strong{ color: var(--gold-soft); }
+
+  .cta{
+    background: var(--parchment);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 28px 26px;
+    margin-top: 8px;
+  }
+  .cta h2{
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 600;
+    color: var(--forest-deep);
+    font-size: 1.4rem;
+    margin: 0 0 10px;
+  }
+  .cta p{ margin: 0 0 16px; }
+  .cta a.btn{
+    display:inline-block;
+    background: var(--forest-deep);
+    color: var(--cream);
+    text-decoration:none;
+    padding: 10px 22px;
+    border-radius: 3px;
+    font-size: 0.88rem;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+
+  .sources{
+    font-size: 0.78rem;
+    color: rgba(30,42,32,0.6);
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+    margin-top: 20px;
+    font-style: italic;
+  }
+
+  /* ---- footer (reused from site) ---- */
+  .site-footer {
+    background: var(--forest-deep);
+    color: var(--parchment-alt);
+    padding-block: 40px;
+    border-top: 1px solid var(--line);
+  }
+  .site-footer__row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .site-footer__logo {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 1.05rem;
+    color: var(--cream);
+    margin: 0 0 8px;
+  }
+  .site-footer__logo em { color: var(--gold); }
+  .site-footer__text {
+    max-width: 46ch;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: var(--parchment-alt);
+    margin: 0;
+  }
+  .site-footer__copy {
+    font-size: 0.78rem;
+    color: rgba(242, 234, 215, 0.6);
+    margin: 0;
+  }
+  .footer__social { display: flex; align-items: center; gap: 20px; }
+  .footer__social svg { width: 26px; height: 26px; display: block; }
+  .nav__icon{ color: var(--parchment-alt); }
+</style>
+</head>
+<body>
+
+  <nav class="nav">
+    <div class="wrap nav__row">
+      <a class="nav__logo" href="#">Tours <em>Meriyo</em> Dublín</a>
+      <a class="nav__back" href="/">← Volver al inicio</a>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <div class="wrap">
+      <p class="hero__eyebrow">Guía práctica · Primer día en Dublín</p>
+      <h1>Del aeropuerto a tu <em>hotel</em>, paso a paso</h1>
+      <p class="hero__lede">
+        Todo lo que necesitas resolver en tus primeras horas en Dublín:
+        cómo salir del aeropuerto, qué tarjeta de transporte comprar y
+        cómo moverte por la ciudad sin perder el tiempo que podrías
+        pasar descubriéndola.
+      </p>
+      <figure class="hero__img">
+        <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Dublin_Airport_Terminal_1_Departures_Level.jpg" alt="Zona de llegadas del Aeropuerto de Dublín" />
+      </figure>
+      <p class="caption">Zona de llegadas del Aeropuerto de Dublín (Terminal 1). Imagen de dominio público, vía Wikimedia Commons.</p>
+    </div>
+  </header>
+
+  <article class="wrap">
+    <div class="route">
+
+      <section class="waypoint">
+        <div class="waypoint__marker">1</div>
+        <h2>Aterrizas: primeros pasos en el aeropuerto</h2>
+        <p>
+          El aeropuerto de Dublín (código <strong>DUB</strong>) tiene dos
+          terminales, T1 y T2, conectadas por un breve trayecto a pie o en
+          autobús interno gratuito. Antes de salir a buscar transporte,
+          conviene saber dos cosas:
+        </p>
+        <ul>
+          <li><strong>No hay tren ni metro directo al centro.</strong> Dublín es de las pocas capitales europeas sin conexión ferroviaria desde el aeropuerto — el proyecto de metro (MetroLink) sigue en obras y tardará años en abrir.</li>
+          <li><strong>Compra tu tarjeta de transporte nada más llegar</strong> si vas a moverte varios días por la ciudad (lo explicamos en la parada 3).</li>
+        </ul>
+      </section>
+
+      <section class="waypoint">
+        <div class="waypoint__marker">2</div>
+        <h2>Del aeropuerto a tu hotel</h2>
+        <p>Cuatro maneras de hacer el trayecto, según tu presupuesto y equipaje:</p>
+
+        <div class="option-grid">
+          <div class="option-card">
+            <p class="option-card__name">Autobús urbano</p>
+            <p class="option-card__meta">Desde ~2 € · 50–70 min</p>
+            <p>Líneas como la 16 o la 41. La opción más barata, pero lenta y con poco sitio para maletas grandes.</p>
+          </div>
+          <div class="option-card">
+            <p class="option-card__name">Airlink Express</p>
+            <p class="option-card__meta">~8–9 € · 30–40 min</p>
+            <p>El exprés pensado para viajeros. Para en O'Connell Street, Connolly Station y Busáras. Buen espacio para equipaje.</p>
+          </div>
+          <div class="option-card">
+            <p class="option-card__name">Aircoach</p>
+            <p class="option-card__meta">~9–10 € · 25–35 min</p>
+            <p>Ideal si tu hotel está en la zona sur (Ballsbridge, Donnybrook, St. Stephen's Green). Algunas rutas operan 24h.</p>
+          </div>
+          <div class="option-card">
+            <p class="option-card__name">Taxi / Uber / Free Now</p>
+            <p class="option-card__meta">~25–40 € · 25–35 min</p>
+            <p>La opción más cómoda con mucho equipaje o viajando en familia. Taxímetro, paradas oficiales fuera de ambas terminales.</p>
+          </div>
+        </div>
+
+        <div class="tip-box">
+          <strong>Consejo:</strong> si tu hotel está al norte del Liffey (O'Connell Street, Parnell Square), el Airlink suele dejarte más cerca. Al sur (Temple Bar, St. Stephen's Green, Ballsbridge), tanto Airlink como Aircoach tienen buenas paradas.
+        </div>
+      </section>
+
+      <section class="waypoint">
+        <div class="waypoint__marker">3</div>
+        <h2>La Leap Card: tu aliada para moverte por la ciudad</h2>
+        <p>
+          Una vez en el centro, la forma más cómoda y barata de moverte es
+          con la <strong>Leap Card</strong>, la tarjeta sin contacto que
+          funciona en autobuses urbanos, en el tranvía Luas y en el tren DART.
+        </p>
+        <p>
+          Para visitantes existe la <strong>Leap Visitor Card</strong>:
+          viajes ilimitados durante 1, 3 o 7 días por un precio fijo
+          (orientativamente entre 12 € y 22 € según la duración). Se compra
+          online antes del viaje o directamente al llegar, en tiendas del
+          propio aeropuerto o en comercios del centro con el cartel "Leap"
+          en el escaparate. Es válida en Dublin Bus, Luas, DART y —en muchos
+          casos— en el Airlink, pero <strong>no</strong> en Aircoach ni en
+          los autobuses turísticos "hop-on hop-off".
+        </p>
+        <ul>
+          <li><strong>En el autobús:</strong> se toca al validador junto al conductor, solo al subir.</li>
+          <li><strong>En el Luas:</strong> se toca en el andén antes de subir al tranvía — no hay torniquetes, pero los inspectores controlan a menudo.</li>
+          <li><strong>En el DART:</strong> se toca al entrar y también al salir de la estación, o te cobrarán la tarifa máxima.</li>
+        </ul>
+
+        <figure>
+          <img src="https://commons.wikimedia.org/wiki/Special:FilePath/James%20Luas%20Stop%20Red%20Line%20Dublin.jpg" alt="Parada de Luas, línea roja, en el centro de Dublín" />
+        </figure>
+        <p class="caption">Parada de Luas (línea roja) en el centro de Dublín. Imagen de dominio público (CC0), vía Wikimedia Commons.</p>
+      </section>
+
+      <section class="waypoint">
+        <div class="waypoint__marker">4</div>
+        <h2>Moverte por Dublín, día a día</h2>
+        <ul>
+          <li><strong>A pie:</strong> el centro histórico es compacto — de Temple Bar a Trinity College u O'Connell Street se camina en pocos minutos.</li>
+          <li><strong>Luas:</strong> dos líneas, Verde y Roja, que se cruzan cerca del centro. Perfecto entre barrios sin depender del tráfico.</li>
+          <li><strong>DART:</strong> ideal para una escapada de un día a la costa — Howth o Dún Laoghaire, ambos con paseos marítimos preciosos.</li>
+          <li><strong>Autobuses urbanos:</strong> cubren casi toda la ciudad, útiles donde no llega el Luas ni el DART.</li>
+        </ul>
+
+        <figure>
+          <img src="https://commons.wikimedia.org/wiki/Special:FilePath/A%20DART%20train%20crossing%20Clontarf%20Road%20-%20geograph.org.uk%20-%202217143.jpg" alt="Tren DART cruzando Clontarf Road, en la costa de Dublín" />
+        </figure>
+        <p class="caption">Tren DART junto a la costa de Dublín, cerca de Clontarf. © P L Chadwick, CC BY-SA 2.0, vía Wikimedia Commons / geograph.org.uk.</p>
+      </section>
+
+      <section class="waypoint">
+        <div class="waypoint__marker">5</div>
+        <h2>Antes de salir a explorar</h2>
+        <ul>
+          <li><strong>Enchufes:</strong> tipo G, el mismo que en el Reino Unido. Trae adaptador si vienes de fuera de Irlanda o Reino Unido.</li>
+          <li><strong>Clima:</strong> muy cambiante todo el año — lleva siempre una chaqueta ligera impermeable, aunque salga el sol.</li>
+          <li><strong>Propinas:</strong> no obligatorias, pero un 10–12% en restaurantes es un gesto habitual si el servicio no está incluido.</li>
+          <li><strong>Horarios:</strong> muchas tiendas del centro abren hasta tarde los jueves; los domingos suelen tener horario reducido.</li>
+          <li><strong>Wifi:</strong> gratuito en la mayoría de cafeterías, pubs y en el propio aeropuerto.</li>
+        </ul>
+      </section>
+
+    </div>
+
+    <div class="cta">
+      <h2>Tu primer paseo por la ciudad</h2>
+      <p>
+        Una vez instalado, la mejor manera de situarte y entender Dublín
+        —sus barrios, su historia y los rincones que no salen en las
+        postales— es con alguien que vive aquí. En Tours Meriyo Dublín
+        organizamos free tours a diario, en grupos reducidos y a ritmo
+        tranquilo: ideales para el primer o segundo día, cuando todavía
+        estás cogiendo el pulso a la ciudad.
+      </p>
+      <a class="btn" href="/#excursiones">Ver horarios del free tour</a>
+    </div>
+
+    <p class="sources">
+      Fuentes de referencia: Transport for Ireland, Aircoach, Airlink Express y Leap Card
+      (tarifas y rutas actualizadas en 2026; confirma los precios exactos en las webs oficiales
+      antes de viajar, ya que pueden variar). Imágenes: Wikimedia Commons, con licencia de
+      dominio público o Creative Commons según se indica en cada pie de foto.
+    </p>
+  </article>
+
+  <footer class="site-footer" id="sobre-mi">
+    <div class="wrap site-footer__row">
+      <div>
+        <p class="site-footer__logo">Tours <em>Meriyo</em> Dublín</p>
+        <p class="site-footer__text">
+          Guías locales, grupos reducidos y el Dublín que no sale en las
+          postales. Free tours a diario, con reserva anticipada.
+        </p>
+      </div>
+      <div class="footer__social" aria-label="Redes sociales">
+        <a href="https://instagram.com" aria-label="Instagram" class="nav__icon">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6">
+            <rect x="3" y="3" width="18" height="18" rx="5"/>
+            <circle cx="12" cy="12" r="4.2"/>
+            <circle cx="17.3" cy="6.7" r="0.9" fill="currentColor" stroke="none"/>
+          </svg>
+        </a>
+        <a href="https://tiktok.com" aria-label="TikTok" class="nav__icon">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+            <path d="M14.5 3h2.6c.2 1.6 1.2 3 2.8 3.6v2.7c-1.4 0-2.8-.4-3.9-1.2v6.6c0 3-2.4 5.3-5.4 5.3S5.2 17.7 5.2 14.7c0-2.9 2.3-5.2 5.2-5.3v2.8c-1.3.1-2.4 1.2-2.4 2.5 0 1.4 1.2 2.5 2.6 2.5s2.6-1.1 2.6-2.5V3z"/>
+          </svg>
+        </a>
+        <a href="https://facebook.com" aria-label="Facebook" class="nav__icon">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+            <path d="M13.5 21v-7.6h2.6l.4-3h-3v-1.9c0-.9.2-1.5 1.5-1.5h1.6V4.3C15.9 4.2 15 4.1 14 4.1c-2.3 0-3.9 1.4-3.9 4v2.3H7.5v3H10V21h3.5z"/>
+          </svg>
+        </a>
+        <a href="https://x.com" aria-label="X (Twitter)" class="nav__icon">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+            <path d="M18.9 3h3.1l-6.8 7.7L23.2 21h-6.3l-4.9-6.4L6.3 21H3.2l7.2-8.3L2.8 3h6.4l4.5 5.9L18.9 3zm-1.1 16.2h1.7L7.3 4.7H5.5l12.3 14.5z"/>
+          </svg>
+        </a>
+      </div>
+      <p class="site-footer__copy">© 2026 Tours Meriyo Dublín</p>
+    </div>
+  </footer>
+
+</body>
+</html>
