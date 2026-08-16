@@ -24,6 +24,10 @@ if (!tour.is_active) {
   return Astro.redirect('/404');
 }
 
+if (Array.isArray(tour.gallery)) {
+  tour.gallery = [...tour.gallery].sort((a: any, b: any) => a.position - b.position);
+}
+
 interface ApiReview {
   id: string;
   stars: number;
@@ -78,6 +82,15 @@ if (sessionToken) {
 const myReview = currentCustomer
   ? reviews.find((r) => r.customer_id === currentCustomer!.id) ?? null
   : null;
+
+function splitCaption(text: string): { title: string | null; body: string | null } {
+  const trimmed = text.trim();
+  const match = trimmed.match(/^([^.!?]{1,40}[.!?])\s*(.*)$/);
+  if (match && match[2]) {
+    return { title: match[1].replace(/[.!?]$/, ''), body: match[2] };
+  }
+  return { title: null, body: trimmed };
+}
 ---
 
 <!doctype html>
@@ -113,6 +126,40 @@ const myReview = currentCustomer
             )}
           </div>
 
+          {tour.gallery?.length > 0 && (
+            <div class="tour-highlights">
+              <div class="tour-highlights__text">
+                <h2 class="tour-highlights__title">¿Qué veremos durante el tour?</h2>
+                <p>{tour.description}</p>
+              </div>
+
+              <div class="tour-highlights__carousel-wrap">
+                <div class="tour-highlights__carousel" id="gallery-carousel">
+                  {tour.gallery.map((img: any) => {
+                    const parts = img.alt ? splitCaption(img.alt) : null;
+                    return (
+                      <div class="carousel-slide" data-slide tabindex="0">
+                        <img src={img.url} alt={img.alt ?? tour.name} loading="lazy" />
+                        {parts && (
+                          <div class="carousel-caption">
+                            {parts.title && <p class="carousel-caption__title">{parts.title}</p>}
+                            {parts.body && <p class="carousel-caption__body">{parts.body}</p>}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div class="tour-highlights__dots" id="gallery-dots">
+                  {tour.gallery.map((_: any, i: number) => (
+                    <button type="button" class="carousel-dot" data-dot data-index={i} aria-label={`Ir a la imagen ${i + 1}`}></button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
           <a href={`/reservar?tour=${tour.id}`} class="btn orange-btn rounded-btn">Reservar esta ruta</a>
 
           {tour.meeting_point_lat != null && tour.meeting_point_lng != null && (
@@ -123,14 +170,6 @@ const myReview = currentCustomer
               <p class="tour-detail__map-attribution">
                 Mapa de <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors
               </p>
-            </div>
-          )}
-
-          {tour.gallery?.length > 0 && (
-            <div class="tour-detail__gallery">
-              {tour.gallery.map((img: any) => (
-                <img src={img.url} alt={img.alt ?? tour.name} loading="lazy" />
-              ))}
             </div>
           )}
         </div>
@@ -273,12 +312,106 @@ const myReview = currentCustomer
     gap: 14px;
     margin-top: 40px;
   }
-  .tour-detail__gallery img {
-    width: 100%;
-    height: 160px;
-    object-fit: cover;
+  .tour-highlights {
+    display: grid;
+    margin-bottom: 45px;
+    grid-template-columns: minmax(240px, 340px) 1fr;
+    gap: 40px;
+    align-items: start;
+    margin-top: 56px;
+  }
+  .tour-highlights__title {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(1.5rem, 2.6vw, 1.9rem);
+    color: var(--ink);
+    margin: 0 0 16px;
+  }
+  .tour-highlights__text p {
+    font-size: 0.95rem;
+    line-height: 1.7;
+    color: #3c4a3d;
+    margin: 0 0 16px;
+  }
+
+  .tour-highlights__carousel-wrap { min-width: 0; }
+  .tour-highlights__carousel {
+    display: flex;
+    gap: 14px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    padding-bottom: 4px;
+  }
+  .tour-highlights__carousel::-webkit-scrollbar { display: none; }
+
+  .carousel-slide {
+    position: relative;
+    flex: 0 0 auto;
+    width: min(230px, 70vw);
+    height: 280px;
     border-radius: var(--radius);
+    overflow: hidden;
+    scroll-snap-align: start;
     border: 1px solid rgba(24, 34, 25, 0.1);
+  }
+  .carousel-slide img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .carousel-caption {
+    position: absolute;
+    inset: auto 0 0 0;
+    background: linear-gradient(to top, rgba(27, 41, 33, 0.9), rgba(27, 41, 33, 0));
+    padding: 40px 16px 14px;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    pointer-events: none;
+  }
+  .carousel-slide:hover .carousel-caption,
+  .carousel-slide:focus-within .carousel-caption,
+  .carousel-slide:focus .carousel-caption {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .carousel-caption__title {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 1.05rem;
+    color: var(--cream);
+    margin: 0 0 6px;
+  }
+  .carousel-caption__body {
+    font-size: 0.8rem;
+    line-height: 1.55;
+    color: var(--parchment-alt);
+    margin: 0;
+  }
+
+  .tour-highlights__dots {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 16px;
+  }
+  .carousel-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(24, 34, 25, 0.2);
+    padding: 0;
+    cursor: pointer;
+  }
+  .carousel-dot.is-active { background: var(--ink); }
+
+  @media (max-width: 780px) {
+    .tour-highlights { grid-template-columns: 1fr; }
   }
 
   .tour-reviews {
@@ -436,6 +569,35 @@ const myReview = currentCustomer
 </style>
 
 <script define:vars={{ tourId: tour.id }}>
+  const carousel = document.getElementById('gallery-carousel');
+  const dotsWrap = document.getElementById('gallery-dots');
+
+  if (carousel && dotsWrap) {
+    const slides = Array.from(carousel.querySelectorAll('[data-slide]'));
+    const dots = Array.from(dotsWrap.querySelectorAll('[data-dot]'));
+
+    dots.forEach((dot, i) => {
+      dot.addEventListener('click', () => {
+        slides[i]?.scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' });
+      });
+    });
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const idx = slides.indexOf(entry.target);
+            dots.forEach((d) => d.classList.remove('is-active'));
+            dots[idx]?.classList.add('is-active');
+          }
+        });
+      },
+      { root: carousel, threshold: 0.6 }
+    );
+    slides.forEach((s) => observer.observe(s));
+    dots[0]?.classList.add('is-active');
+  }
+
   const form = document.getElementById('review-form');
 
   if (form) {

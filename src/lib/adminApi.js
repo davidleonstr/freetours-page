@@ -156,3 +156,35 @@ export function createTourDate(tourId, payload) {
 export function deleteTourDate(tourId, dateId) {
   return adminRequest(`/tours/${tourId}/dates/${dateId}`, { method: "DELETE", needsPublishKey: true });
 }
+
+// --- Gallery (per-tour image ordering) ---
+
+export function getTourGallery(tourId) {
+  return adminRequest(`/tours/${tourId}/gallery`);
+}
+
+export function addImageToGallery(tourId, payload) {
+  return adminRequest(`/tours/${tourId}/gallery`, { method: "POST", body: payload, needsPublishKey: true });
+}
+
+export function updateGalleryPosition(tourId, galleryId, position) {
+  return adminRequest(`/tours/${tourId}/gallery/${galleryId}`, {
+    method: "PATCH",
+    body: { position },
+    needsPublishKey: true
+  });
+}
+
+export function removeImageFromGallery(tourId, galleryId) {
+  return adminRequest(`/tours/${tourId}/gallery/${galleryId}`, { method: "DELETE", needsPublishKey: true });
+}
+
+// --- Images (the underlying uploaded file/row, independent of any gallery) ---
+
+export function updateImage(imageId, payload) {
+  return adminRequest(`/images/${imageId}`, { method: "PATCH", body: payload, needsPublishKey: true });
+}
+
+export function deleteImage(imageId) {
+  return adminRequest(`/images/${imageId}`, { method: "DELETE", needsPublishKey: true });
+}
