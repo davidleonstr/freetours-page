@@ -173,8 +173,11 @@ const preselectedTour = Astro.url.searchParams.get("tour") ?? "";
                 <div class="field">
                   <label for="telefono">Teléfono <em>*</em></label>
                   <div class="phone-group">
-                    <div class="select-wrap phone-group__prefix-wrap">
-<select id="prefijo" name="prefijo" class="phone-group__prefix" aria-label="Prefijo del país">
+                    <div class="combo phone-group__prefix-wrap" id="prefijo-combo">
+                      <!-- Native select stays as the actual form value / data
+                           source. It's visually hidden — the button + panel
+                           below are the real UI. -->
+                      <select id="prefijo" name="prefijo" class="phone-group__prefix visually-hidden" aria-hidden="true" tabindex="-1">
                         <option value="+93">Afganistán +93</option>
                         <option value="+355">Albania +355</option>
                         <option value="+49">Alemania +49</option>
@@ -370,6 +373,29 @@ const preselectedTour = Astro.url.searchParams.get("tour") ?? "";
                         <option value="+260">Zambia +260</option>
                         <option value="+263">Zimbabue +263</option>
                       </select>
+
+                      <button
+                        type="button"
+                        class="combo__toggle"
+                        id="prefijo-toggle"
+                        aria-haspopup="listbox"
+                        aria-expanded="false"
+                      >
+                        <span id="prefijo-toggle-label">España +34</span>
+                      </button>
+
+                      <div class="combo__panel is-hidden" id="prefijo-panel">
+                        <input
+                          type="text"
+                          class="combo__search"
+                          id="prefijo-search"
+                          placeholder="Buscar país o prefijo…"
+                          autocomplete="off"
+                          inputmode="search"
+                          aria-label="Buscar país o prefijo"
+                        />
+                        <ul class="combo__list" id="prefijo-list" role="listbox" aria-label="Prefijo del país"></ul>
+                      </div>
                     </div>
                     <input type="tel" id="telefono" name="telefono" class="phone-group__number" placeholder="600 000 000" />
                   </div>
@@ -397,7 +423,7 @@ const preselectedTour = Astro.url.searchParams.get("tour") ?? "";
           <p class="booking__form-error is-hidden" id="form-error" role="alert"></p>
         </div>
 
-          <button type="submit" form="booking-form" class="btn orange-btn summary__cta" id="submit-btn-2">
+          <button type="submit" form="booking-form" class="btn forest-panel-btn  summary__cta" id="submit-btn-2">
             Confirmar reserva
           </button>
       </form>
@@ -445,7 +471,7 @@ const preselectedTour = Astro.url.searchParams.get("tour") ?? "";
 
           <div class="summary__divider"></div>
 
-          <button type="submit" form="booking-form" class="btn orange-btn summary__cta" id="submit-btn">
+          <button type="submit" form="booking-form" class="btn forest-panel-btn  summary__cta" id="submit-btn">
             Confirmar reserva
           </button>
           <p class="summary__note">Tour gratuito — no se te cobrará nada.</p>
@@ -609,6 +635,18 @@ const preselectedTour = Astro.url.searchParams.get("tour") ?? "";
     cursor: not-allowed;
   }
 
+  .visually-hidden {
+    position: absolute !important;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
   .phone-group {
     display: flex;
     gap: 8px;
@@ -622,6 +660,110 @@ const preselectedTour = Astro.url.searchParams.get("tour") ?? "";
   .phone-group__number {
     flex: 1 1 auto;
     min-width: 0;
+  }
+
+  /* ---------- Searchable prefix combobox ---------- */
+  .combo {
+    position: relative;
+  }
+  .combo__toggle {
+    width: 100%;
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    color: var(--ink);
+    background: var(--cream);
+    border: 1px solid rgba(24, 34, 25, 0.22);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    text-align: left;
+    cursor: pointer;
+    position: relative;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  .combo__toggle::after {
+    content: "";
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    width: 8px;
+    height: 8px;
+    border-right: 1.6px solid var(--russet);
+    border-bottom: 1.6px solid var(--russet);
+    transform: translateY(-70%) rotate(45deg);
+    pointer-events: none;
+  }
+  .combo__toggle:focus,
+  .combo__toggle[aria-expanded="true"] {
+    outline: none;
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px rgba(233, 151, 10, 0.16);
+  }
+  .combo__toggle span {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding-right: 18px;
+  }
+
+  .combo__panel {
+    position: absolute;
+    z-index: 20;
+    top: calc(100% + 6px);
+    left: 0;
+    width: max(100%, 260px);
+    background: var(--cream);
+    border: 1px solid rgba(24, 34, 25, 0.22);
+    border-radius: var(--radius);
+    box-shadow: 0 10px 28px rgba(24, 34, 25, 0.16);
+    padding: 10px;
+  }
+  .combo__panel.is-hidden { display: none; }
+
+  .combo__search {
+    width: 100%;
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    color: var(--ink);
+    background: #fff;
+    border: 1px solid rgba(24, 34, 25, 0.22);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    margin-bottom: 8px;
+  }
+  .combo__search:focus {
+    outline: none;
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px rgba(233, 151, 10, 0.16);
+  }
+
+  .combo__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-height: 240px;
+    overflow-y: auto;
+  }
+  .combo__option {
+    font-size: 0.9rem;
+    color: var(--ink);
+    padding: 9px 10px;
+    border-radius: calc(var(--radius) - 4px);
+    cursor: pointer;
+  }
+  .combo__option:hover,
+  .combo__option:focus {
+    background: var(--gold-soft);
+  }
+  .combo__option[aria-selected="true"] {
+    background: var(--gold-soft);
+    font-weight: 600;
+  }
+  .combo__empty {
+    font-size: 0.86rem;
+    color: #8a8272;
+    padding: 10px;
+    text-align: center;
   }
 
   .select-wrap { position: relative; }
@@ -876,6 +1018,133 @@ const preselectedTour = Astro.url.searchParams.get("tour") ?? "";
     const emailInput = document.getElementById('email') as HTMLInputElement | null;
     const prefijoSelect = document.getElementById('prefijo') as HTMLSelectElement | null;
     const telefonoInput = document.getElementById('telefono') as HTMLInputElement | null;
+
+    // ---------- Searchable country-prefix combobox ----------
+    // The native <select id="prefijo"> above stays as the source of truth
+    // for the form value (submit logic below still just reads
+    // prefijoSelect.value) — this block only builds a searchable UI on
+    // top of it and keeps the two in sync.
+    const prefijoCombo = document.getElementById('prefijo-combo');
+    if (prefijoCombo && prefijoSelect) {
+      const toggle = document.getElementById('prefijo-toggle') as HTMLButtonElement;
+      const toggleLabel = document.getElementById('prefijo-toggle-label') as HTMLSpanElement;
+      const panel = document.getElementById('prefijo-panel') as HTMLDivElement;
+      const search = document.getElementById('prefijo-search') as HTMLInputElement;
+      const list = document.getElementById('prefijo-list') as HTMLUListElement;
+
+      const countryOptions = Array.from(prefijoSelect.options).map((opt) => ({
+        value: opt.value,
+        label: opt.textContent ?? ''
+      }));
+
+      function renderOptions(filter: string) {
+        const q = filter.trim().toLowerCase();
+        list.innerHTML = '';
+
+        const filtered = q
+          ? countryOptions.filter(
+              (o) => o.label.toLowerCase().includes(q) || o.value.toLowerCase().includes(q)
+            )
+          : countryOptions;
+
+        if (filtered.length === 0) {
+          const empty = document.createElement('li');
+          empty.className = 'combo__empty';
+          empty.textContent = 'Sin resultados';
+          list.append(empty);
+          return;
+        }
+
+        for (const opt of filtered) {
+          const li = document.createElement('li');
+          li.className = 'combo__option';
+          li.setAttribute('role', 'option');
+          li.tabIndex = -1;
+          li.dataset.value = opt.value;
+          li.textContent = opt.label;
+          if (opt.value === prefijoSelect!.value) {
+            li.setAttribute('aria-selected', 'true');
+          }
+          list.append(li);
+        }
+      }
+
+      function openPanel() {
+        panel.classList.remove('is-hidden');
+        toggle.setAttribute('aria-expanded', 'true');
+        search.value = '';
+        renderOptions('');
+        search.focus();
+      }
+
+      function closePanel() {
+        panel.classList.add('is-hidden');
+        toggle.setAttribute('aria-expanded', 'false');
+      }
+
+      function choose(value: string) {
+        prefijoSelect!.value = value;
+        const chosen = countryOptions.find((o) => o.value === value);
+        toggleLabel.textContent = chosen ? chosen.label : '';
+        closePanel();
+        toggle.focus();
+      }
+
+      toggle.addEventListener('click', () => {
+        if (panel.classList.contains('is-hidden')) openPanel();
+        else closePanel();
+      });
+
+      search.addEventListener('input', () => renderOptions(search.value));
+
+      search.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          closePanel();
+          toggle.focus();
+        } else if (e.key === 'Enter') {
+          e.preventDefault();
+          const first = list.querySelector('.combo__option') as HTMLElement | null;
+          if (first?.dataset.value) choose(first.dataset.value);
+        } else if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          (list.querySelector('.combo__option') as HTMLElement | null)?.focus();
+        }
+      });
+
+      list.addEventListener('click', (e) => {
+        const target = (e.target as HTMLElement).closest('.combo__option') as HTMLElement | null;
+        if (target?.dataset.value) choose(target.dataset.value);
+      });
+
+      list.addEventListener('keydown', (e) => {
+        const current = e.target as HTMLElement;
+        if (!current.classList.contains('combo__option')) return;
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          if (current.dataset.value) choose(current.dataset.value);
+        } else if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          (current.nextElementSibling as HTMLElement | null)?.focus();
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          const prev = current.previousElementSibling as HTMLElement | null;
+          if (prev) prev.focus();
+          else search.focus();
+        } else if (e.key === 'Escape') {
+          closePanel();
+          toggle.focus();
+        }
+      });
+
+      document.addEventListener('click', (e) => {
+        if (!prefijoCombo.contains(e.target as Node)) closePanel();
+      });
+
+      // Initialize the visible label from whatever the select currently
+      // has selected (handles the default "España +34" option).
+      const initial = countryOptions.find((o) => o.value === prefijoSelect.value);
+      if (initial) toggleLabel.textContent = initial.label;
+    }
 
     const sTour = document.getElementById('s-tour')!;
     const sFecha = document.getElementById('s-fecha')!;

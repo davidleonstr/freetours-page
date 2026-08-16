@@ -108,7 +108,6 @@ const myReview = currentCustomer
 
           <div class="tour-detail__meta">
             {tour.duration_hours && <span>{tour.duration_hours}h de duración</span>}
-            {tour.capacity && <span>Hasta {tour.capacity} personas</span>}
             {summary && summary.reviewCount > 0 && (
               <span>★ {summary.averageStars.toFixed(1)} ({summary.reviewCount} {summary.reviewCount === 1 ? 'reseña' : 'reseñas'})</span>
             )}
@@ -150,12 +149,6 @@ const myReview = currentCustomer
 
           {!reviewsError && (
             <div class="review-form-wrap">
-              {!currentCustomer && (
-                <div class="review-cta">
-                  <p>¿Has hecho esta ruta? <a href="/iniciar-sesion">Inicia sesión</a> para dejar tu reseña.</p>
-                </div>
-              )}
-
               {currentCustomer && myReview && (
                 <div class="review-cta review-cta--done">
                   <p>Ya has dejado una reseña para esta ruta. ¡Gracias por compartir tu opinión!</p>
