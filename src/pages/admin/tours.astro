@@ -50,7 +50,8 @@ try {
         <span class="admin-top__tag">Panel de excursiones</span>
         <div class="admin-top__nav">
           <a href="/admin/schedules" class="admin-top__nav-link">Horarios</a>
-          <a href="/admin/dates" class="admin-top__nav-link">Fechas</a>       
+          <a href="/admin/dates" class="admin-top__nav-link">Fechas</a>    
+          <a href="/admin/images" class="admin-top__nav-link">Imagenes</a>       
         </div>
         <button type="button" class="admin-top__back admin-top__logout" id="admin-logout-btn">Cerrar sesión</button>
         <a href="/" class="admin-top__back">← Volver al sitio</a>
@@ -104,6 +105,7 @@ try {
                     <button type="button" class="admin__link-btn" data-edit-tour={t.id}>Editar</button>
                     <a class="admin__link-btn" href={`/admin/schedules?tour=${t.id}`}>Horarios</a>
                     <a class="admin__link-btn" href={`/admin/dates?tour=${t.id}`}>Fechas</a>
+                    <a class="admin__link-btn" href={`/admin/images?tour=${t.id}`}>Imagenes</a>
                     <button
                       type="button"
                       class="admin__link-btn admin__link-btn--danger"
