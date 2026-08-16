@@ -11,6 +11,7 @@
 import Nav from "@/components/Nav.astro";
 import ConfirmDialog from "@/components/ConfirmDialog.astro";
 import { ApiError, getBooking, getTourDates, getTourSchedules } from "@/lib/api.js";
+import "@/styles/global.css";
 
 // --------------- STRICT AUTH ---------------
 //import { ApiError, getBooking, getTourDates, getTourSchedules, getCurrentCustomer } from "@/lib/api.js";
@@ -127,7 +128,6 @@ const partySummary = [
       href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,500;0,600;1,500;1,600&family=Work+Sans:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/src/styles/global.css" />
   </head>
   <body>
     <Nav />
