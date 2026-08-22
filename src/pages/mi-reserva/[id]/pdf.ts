@@ -39,6 +39,7 @@ const COLOR = {
   russet: rgb(0.616, 0.18, 0.129), // secondary accent
   orange: rgb(0.906, 0.475, 0.102), // #E8791A, matches your .first__row
   line: rgb(0.788, 0.741, 0.639),
+  faint: rgb(0.53, 0.5, 0.44), // muted, low-contrast text for the tipping note
 } as const;
 
 const formatDate = (value: string) =>
@@ -188,6 +189,7 @@ export const GET: APIRoute = async ({ params, request }) => {
 
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  const fontItalic = await pdfDoc.embedFont(StandardFonts.HelveticaOblique);
   // Closest StandardFonts stand-in for your italic Fraunces display font.
   // For a pixel-perfect match, embed the real Fraunces .ttf with
   // @pdf-lib/fontkit instead — see note at the bottom of this file.
@@ -226,6 +228,15 @@ export const GET: APIRoute = async ({ params, request }) => {
     ? 26 /* eyebrow + title */ + meetingAddressLines.length * 13 + 16 /* spacing */ + 34 /* map button */ + 24
     : 0;
 
+  // A quiet, understated note about what a free tour is and how tips can
+  // be given. Deliberately small, low-contrast, and unembellished so it
+  // reads as a footnote rather than a call to action — present for anyone
+  // who actually reads the page, invisible to anyone skimming it.
+  const freeTourNote =
+    "Un free tour es una visita guiada sin precio fijo: al finalizar, cada persona aporta la propina que considere justa según lo que le haya aportado la experiencia. Si quieres dejar propina, puedes hacerlo en efectivo o mediante tarjeta, Revolut o Bizum.";
+  const freeTourNoteLines = wrapText(freeTourNote, fontItalic, 7.5, contentWidth);
+  const freeTourNoteHeight = freeTourNoteLines.length * 10.5 + 4;
+
   const headerBandHeight = 96;
   const footerBandHeight = 70;
   const buttonsHeight = 34 * 2 + 12; // two buttons + gap
@@ -241,6 +252,8 @@ export const GET: APIRoute = async ({ params, request }) => {
     warningHeight +
     sectionGap +
     buttonsHeight +
+    sectionGap +
+    freeTourNoteHeight +
     sectionGap +
     footerBandHeight +
     20;
@@ -259,7 +272,7 @@ export const GET: APIRoute = async ({ params, request }) => {
     color: COLOR.forestDeep,
   });
 
-  page.drawText("TOURS MERIYO DUBLÍN", {
+  page.drawText("Meriyo Tours (Dublin)", {
     x: marginX,
     y: pageHeight - 30,
     size: 10,
@@ -413,6 +426,24 @@ export const GET: APIRoute = async ({ params, request }) => {
     textColor: COLOR.cream,
   });
 
+  cursorY -= 78 + sectionGap;
+
+  // ---- Quiet footnote: what a free tour is + tipping methods ----
+  // No box, no heading, no accent color — small italic text in a muted
+  // tone that blends into the parchment background. It's there for anyone
+  // who reads the page closely, not for anyone skimming it.
+  let noteY = cursorY;
+  for (const line of freeTourNoteLines) {
+    page.drawText(line, {
+      x: marginX,
+      y: noteY,
+      size: 7.5,
+      font: fontItalic,
+      color: COLOR.faint,
+    });
+    noteY -= 10.5;
+  }
+
   // ---- Footer band (mirrors .site-footer) ----
   page.drawRectangle({
     x: 0,
@@ -421,14 +452,14 @@ export const GET: APIRoute = async ({ params, request }) => {
     height: footerBandHeight,
     color: COLOR.forestDeep,
   });
-  page.drawText("Tours Meriyo Dublín", {
+  page.drawText("Meriyo Tours (Dublin)", {
     x: marginX,
     y: footerBandHeight - 26,
     size: 11,
     font: fontDisplay,
     color: COLOR.cream,
   });
-  const copyright = `© ${new Date().getFullYear()} Tours Meriyo Dublín`;
+  const copyright = `© ${new Date().getFullYear()} Meriyo Tours (Dublin)`;
   page.drawText(copyright, {
     x: marginX,
     y: footerBandHeight - 44,

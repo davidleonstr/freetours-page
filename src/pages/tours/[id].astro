@@ -98,7 +98,7 @@ function splitCaption(text: string): { title: string | null; body: string | null
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{tour.name} — Tours Meriyo Dublín</title>
+    <title>{tour.name} — Meriyo Tours (Dublin)</title>
     <link rel="icon" href="/web-icon-orange.svg" />
     <meta name="description" content={tour.description} />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -130,7 +130,7 @@ function splitCaption(text: string): { title: string | null; body: string | null
             <div class="tour-highlights">
               <div class="tour-highlights__text">
                 <h2 class="tour-highlights__title">¿Qué veremos durante el tour?</h2>
-                <p>{tour.description}</p>
+                <p>El recorrido está dividido en puntos; puedes ver las descripciones de los puntos en las imágenes.</p>
               </div>
 
               <div class="tour-highlights__carousel-wrap">
@@ -237,13 +237,13 @@ function splitCaption(text: string): { title: string | null; body: string | null
     <footer class="site-footer" id="sobre-mi">
       <div class="wrap site-footer__row">
         <div>
-          <p class="site-footer__logo">Tours <em>Meriyo</em> Dublín</p>
+          <p class="site-footer__logo"><em>Meriyo</em> Tours  Dublín</p>
           <p class="site-footer__text">
-            Guías locales, grupos reducidos y el Dublín que no sale en las
-            postales. Free tours a diario, con reserva anticipada.
+            Dublín que no sale en las
+            postales. Free tours con reserva anticipada.
           </p>
         </div>
-        <p class="site-footer__copy">© {new Date().getFullYear()} Tours Meriyo Dublín</p>
+        <p class="site-footer__copy">© {new Date().getFullYear()} Meriyo Tours (Dublin)</p>
       </div>
     </footer>
   </body>

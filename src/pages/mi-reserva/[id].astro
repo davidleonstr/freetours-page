@@ -9,6 +9,7 @@
 // quantity, number_of_children, number_of_babies, status, created_at,
 // tour_name, tour_date, departure_time, customer_name, customer_email.
 import Nav from "@/components/Nav.astro";
+import WhatsAppButton from '@/components/WhatsAppButton.astro';
 import ConfirmDialog from "@/components/ConfirmDialog.astro";
 import { ApiError, getBooking, getTourDates, getTourSchedules } from "@/lib/api.js";
 import "@/styles/global.css";
@@ -119,7 +120,7 @@ const partySummary = [
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Mi reserva — Tours Meriyo Dublín</title>
+    <title>Mi reserva — Meriyo Tours (Dublin)</title>
     <link rel="icon" href="/web-icon-orange.svg" />
     <meta name="robots" content="noindex" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -253,15 +254,16 @@ const partySummary = [
     <footer class="site-footer">
       <div class="wrap site-footer__row">
         <div>
-          <p class="site-footer__logo">Tours <em>Meriyo</em> Dublín</p>
+          <p class="site-footer__logo"><em>Meriyo</em> Tours  Dublín</p>
           <p class="site-footer__text">
-            Guías locales, grupos reducidos y el Dublín que no sale en las
-            postales. Free tours a diario, con reserva anticipada.
+            Dublín que no sale en las
+            postales. Free tours con reserva anticipada.
           </p>
         </div>
-        <p class="site-footer__copy">© {new Date().getFullYear()} Tours Meriyo Dublín</p>
+        <p class="site-footer__copy">© {new Date().getFullYear()} Meriyo Tours (Dublin)</p>
       </div>
     </footer>
+   <WhatsAppButton /> 
   </body>
 </html>
 
