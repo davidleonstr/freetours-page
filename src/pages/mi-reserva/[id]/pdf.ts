@@ -221,6 +221,14 @@ export const GET: APIRoute = async ({ params, request }) => {
   const warningLines = wrapText(warning, font, 9, contentWidth - 32);
   const warningHeight = warningLines.length * 12 + 24;
 
+  // A second, separate notice about insurance coverage — kept distinct from
+  // the quorum/cancellation warning above so each box stays scannable on
+  // its own rather than merging two unrelated caveats into one wall of text.
+  const insuranceNote =
+    "El seguro del tour solo cubre incidentes ocurridos directamente durante el trayecto. No cubre malestares gástricos por alimentos/bebidas (ya que no los proporcionamos) ni incidentes por descuido personal. Las mascotas son bienvenidas reservando su lugar, pero no tienen cobertura de seguro y cualquier gasto o imprevisto corre totalmente por cuenta de sus dueños.";
+  const insuranceLines = wrapText(insuranceNote, font, 9, contentWidth - 32);
+  const insuranceHeight = insuranceLines.length * 12 + 24;
+
   const meetingAddressLines = hasMeetingPoint
     ? wrapText(tour.meeting_point || "Punto de encuentro disponible en el mapa.", font, 10, contentWidth - 32)
     : [];
@@ -250,6 +258,8 @@ export const GET: APIRoute = async ({ params, request }) => {
     meetingSectionHeight +
     (hasMeetingPoint ? sectionGap : 0) +
     warningHeight +
+    sectionGap +
+    insuranceHeight +
     sectionGap +
     buttonsHeight +
     sectionGap +
@@ -381,7 +391,7 @@ export const GET: APIRoute = async ({ params, request }) => {
     cursorY -= 34 + sectionGap;
   }
 
-  // ---- Warning box ----
+  // ---- Warning box (quorum / cancellation) ----
   page.drawRectangle({
     x: marginX,
     y: cursorY - warningHeight,
@@ -399,6 +409,25 @@ export const GET: APIRoute = async ({ params, request }) => {
   }
 
   cursorY = cursorY - warningHeight - sectionGap;
+
+  // ---- Insurance coverage notice ----
+  page.drawRectangle({
+    x: marginX,
+    y: cursorY - insuranceHeight,
+    width: contentWidth,
+    height: insuranceHeight,
+    color: COLOR.parchmentAlt,
+    borderColor: COLOR.gold,
+    borderWidth: 1,
+  });
+
+  let insuranceY = cursorY - 16;
+  for (const line of insuranceLines) {
+    page.drawText(line, { x: marginX + 16, y: insuranceY, size: 9, font, color: COLOR.ink });
+    insuranceY -= 12;
+  }
+
+  cursorY = cursorY - insuranceHeight - sectionGap;
 
   // ---- Clickable buttons -> back to the live site ----
   const bookingUrl = `${SITE_URL}/mi-reserva/${booking.id}`;
