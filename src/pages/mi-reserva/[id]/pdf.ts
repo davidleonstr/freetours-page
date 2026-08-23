@@ -229,6 +229,16 @@ export const GET: APIRoute = async ({ params, request }) => {
   const insuranceLines = wrapText(insuranceNote, font, 9, contentWidth - 32);
   const insuranceHeight = insuranceLines.length * 12 + 24;
 
+  // A third box, placed at the very bottom of the ticket content (just
+  // above the footer band), covering guide liability insurance and each
+  // participant's own responsibility for fitness/health/belongings.
+  const safetyTitle = "Seguridad y responsabilidad en el tour";
+  const safetyBody =
+    "Guío los paseos con total tranquilidad porque cuento con un seguro de responsabilidad civil profesional. No obstante, ten en cuenta que cada participante se une a la caminata bajo su propia responsabilidad en lo referente a su estado físico, salud y pertenencias personales. Te recomiendo venir con calzado cómodo apto para los adoquines de Dublín y avisarme si tienes alguna molestia antes de empezar. El seguro cubre la actividad profesional del guía, pero no lesiones previas, dolencias de casa ni despistes con tus objetos personales. ¡Prevenir es curar!";
+  const safetyLines = wrapText(safetyBody, font, 9, contentWidth - 32);
+  const safetyTitleHeight = 18; // space reserved for the bold title line
+  const safetyHeight = safetyTitleHeight + safetyLines.length * 12 + 24;
+
   const meetingAddressLines = hasMeetingPoint
     ? wrapText(tour.meeting_point || "Punto de encuentro disponible en el mapa.", font, 10, contentWidth - 32)
     : [];
@@ -264,6 +274,8 @@ export const GET: APIRoute = async ({ params, request }) => {
     buttonsHeight +
     sectionGap +
     freeTourNoteHeight +
+    sectionGap +
+    safetyHeight +
     sectionGap +
     footerBandHeight +
     20;
@@ -472,6 +484,37 @@ export const GET: APIRoute = async ({ params, request }) => {
     });
     noteY -= 10.5;
   }
+
+  cursorY -= freeTourNoteHeight + sectionGap;
+
+  // ---- Safety & liability notice (guide insurance + participant's own
+  // responsibility for fitness/health/belongings) — the last content box
+  // before the footer, so it's the final thing read on the ticket. ----
+  page.drawRectangle({
+    x: marginX,
+    y: cursorY - safetyHeight,
+    width: contentWidth,
+    height: safetyHeight,
+    color: COLOR.parchmentAlt,
+    borderColor: COLOR.gold,
+    borderWidth: 1,
+  });
+
+  page.drawText(safetyTitle, {
+    x: marginX + 16,
+    y: cursorY - 16,
+    size: 9.5,
+    font: fontBold,
+    color: COLOR.ink,
+  });
+
+  let safetyY = cursorY - 16 - safetyTitleHeight;
+  for (const line of safetyLines) {
+    page.drawText(line, { x: marginX + 16, y: safetyY, size: 9, font, color: COLOR.ink });
+    safetyY -= 12;
+  }
+
+  cursorY = cursorY - safetyHeight - sectionGap;
 
   // ---- Footer band (mirrors .site-footer) ----
   page.drawRectangle({

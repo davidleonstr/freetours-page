@@ -1,0 +1,237 @@
+---
+import "@/styles/global.css";
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Términos y Condiciones — Meriyo Tours (Dublin)</title>
+    <meta
+      name="description"
+      content="Términos y condiciones generales de Meriyo Tours: condiciones de participación, derecho de admisión, reservas y coberturas de los free tours en Dublín."
+    />
+    <link rel="icon" href="/web-icon-orange.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,500;0,600;1,500;1,600&family=Work+Sans:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <header class="terms-top">
+      <div class="wrap terms-top__row">
+        <a href="/" class="terms-top__logo"><em>Meriyo</em> Tours <em>Dublín</em></a>
+        <a href="/" class="terms-top__back">← Volver al sitio</a>
+      </div>
+    </header>
+
+    <main class="terms">
+      <div class="wrap terms__wrap">
+        <p class="eyebrow">Legal</p>
+        <h1 class="terms__title">Términos y Condiciones Generales</h1>
+        <p class="terms__subtitle">
+          Condiciones de participación para servicios de guías turísticos y Free Tours
+        </p>
+
+        <div class="terms__card">
+          <div class="terms__notice">
+            <h2 class="terms__notice-title">Identidad de la Empresa</h2>
+            <p>
+              Para cumplir con los estándares formales requeridos, el presente documento establece
+              las normativas legales y de participación aplicables a los servicios prestados bajo
+              la marca comercial <strong>Meriyo Tours</strong>.
+            </p>
+          </div>
+
+          <section class="terms__section">
+            <h2><span class="terms__bar"></span>1. Condiciones Esenciales y Limitación de Responsabilidad</h2>
+            <p>
+              Los participantes reconocen que los recorridos a pie (<em>Free Tours</em>) organizados
+              por <strong>Meriyo Tours</strong> se realizan en espacios públicos abiertos, por lo que
+              cada asistente asume la plena responsabilidad de su propia seguridad física, cuidado de
+              pertenencias personales y cumplimiento de las normativas locales de tráfico y convivencia
+              ciudadana.
+            </p>
+          </section>
+
+          <section class="terms__section">
+            <h2><span class="terms__bar"></span>2. Derecho de Admisión y Control de Asistencia</h2>
+            <p>
+              El guía titular o representante autorizado de <strong>Meriyo Tours</strong> se reserva
+              el derecho de admisión de manera absoluta. Esto incluye la potestad de denegar el
+              acceso o expulsar en cualquier momento del recorrido a aquellas personas que muestren
+              actitudes incívicas, bajo los efectos de sustancias prohibidas, alteren el orden
+              público, pongan en riesgo la seguridad del grupo o incumplan las directrices básicas de
+              convivencia y respeto mutuo.
+            </p>
+          </section>
+
+          <section class="terms__section">
+            <h2><span class="terms__bar"></span>3. Reservas, Asistencia y Cancelaciones</h2>
+            <p>
+              Para garantizar una experiencia óptima y sostenible, <strong>Meriyo Tours</strong>
+              establece un límite máximo de asistentes por grupo. Se solicita a los usuarios
+              puntualidad en el punto de encuentro establecido; en caso de retraso superior a
+              <strong> 10 minutos</strong>, no se garantiza la incorporación al grupo ya iniciado.
+            </p>
+          </section>
+
+          <section class="terms__section">
+            <h2><span class="terms__bar"></span>4. Seguros y Coberturas Derivadas de Actividad</h2>
+            <p>
+              De acuerdo con los estándares aplicables a la actividad turística y de conformidad con
+              pólizas tipo de responsabilidad civil profesional, <strong>Meriyo Tours</strong> cuenta
+              con protecciones básicas frente a daños a terceros derivados estrictamente de la
+              ejecución del guiado, quedando excluidos incidentes por imprudencia temeraria del
+              asistente.
+            </p>
+          </section>
+
+          <blockquote class="terms__quote">
+            «Cada paso en un nuevo recorrido con Meriyo Tours es una oportunidad para aprender,
+            conectar y descubrir el mundo con una sonrisa.»
+          </blockquote>
+        </div>
+      </div>
+    </main>
+
+    <footer class="terms-footer">
+      <div class="wrap">
+        <p>© {new Date().getFullYear()} Meriyo Tours Dublín. Todos los derechos reservados.</p>
+      </div>
+    </footer>
+
+    <style is:global>
+      .terms-top {
+        background: var(--forest-deep);
+        border-bottom: 1px solid var(--line);
+      }
+      .terms-top__row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        padding-block: 16px;
+      }
+      .terms-top__logo {
+        font-family: var(--font-display);
+        font-style: italic;
+        font-size: 1.05rem;
+        color: var(--cream);
+      }
+      .terms-top__logo em { color: var(--gold); }
+      .terms-top__back {
+        font-size: 0.85rem;
+        color: var(--parchment-alt);
+      }
+      .terms-top__back:hover { color: var(--gold-soft); }
+
+      .terms {
+        background: var(--parchment);
+        padding-block: 52px 100px;
+        min-height: 60vh;
+      }
+      .terms__wrap { max-width: 760px; }
+      .terms__title {
+        font-family: var(--font-display);
+        font-weight: 600;
+        font-size: clamp(1.8rem, 3.4vw, 2.5rem);
+        color: var(--ink);
+        margin: 8px 0 10px;
+      }
+      .terms__subtitle {
+        font-size: 0.98rem;
+        color: #5a6b5c;
+        margin: 0 0 32px;
+        line-height: 1.5;
+      }
+
+      .terms__card {
+        background: var(--cream);
+        border: 1px solid rgba(24, 34, 25, 0.1);
+        border-top: 3px solid var(--gold);
+        border-radius: var(--radius);
+        padding: 32px 34px 36px;
+      }
+
+      .terms__notice {
+        background: var(--parchment);
+        border: 1px solid rgba(24, 34, 25, 0.1);
+        border-radius: var(--radius);
+        padding: 18px 22px;
+        margin-bottom: 30px;
+      }
+      .terms__notice-title {
+        font-family: var(--font-display);
+        font-weight: 600;
+        font-size: 1.05rem;
+        color: var(--ink);
+        margin: 0 0 8px;
+      }
+      .terms__notice p {
+        font-size: 0.92rem;
+        line-height: 1.6;
+        color: #4a5b4c;
+        margin: 0;
+      }
+
+      .terms__section { margin-bottom: 26px; }
+      .terms__section:last-of-type { margin-bottom: 0; }
+      .terms__section h2 {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-family: var(--font-display);
+        font-weight: 600;
+        font-size: 1.15rem;
+        color: var(--ink);
+        margin: 0 0 12px;
+      }
+      .terms__bar {
+        display: inline-block;
+        width: 4px;
+        height: 18px;
+        background: var(--gold);
+        border-radius: 2px;
+        flex-shrink: 0;
+      }
+      .terms__section p {
+        font-size: 0.95rem;
+        line-height: 1.7;
+        color: #364a38;
+        margin: 0;
+      }
+      .terms__section em { font-style: italic; color: var(--russet); }
+
+      .terms__quote {
+        margin: 34px 0 0;
+        padding: 18px 22px;
+        background: rgba(72, 122, 74, 0.08);
+        border-left: 3px solid #487a4a;
+        border-radius: var(--radius);
+        font-style: italic;
+        font-size: 0.95rem;
+        line-height: 1.6;
+        color: #2e5c30;
+      }
+
+      .terms-footer {
+        background: var(--forest-deep);
+        padding-block: 20px;
+      }
+      .terms-footer p {
+        margin: 0;
+        font-size: 0.8rem;
+        color: var(--goldSoft, var(--gold-soft));
+        text-align: center;
+      }
+
+      @media (max-width: 640px) {
+        .terms__card { padding: 26px 22px 28px; }
+      }
+    </style>
+  </body>
+</html>
