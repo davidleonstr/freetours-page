@@ -198,56 +198,58 @@ const formatTime = (value: string) => value?.slice(0, 5) ?? value;
             {!summaryError && (
               <div class="admin__table-wrap">
                 <table class="admin__table">
-                  <thead>
-                    <tr>
-                      <th>Fecha</th>
-                      <th>Hora</th>
-                      <th>Ruta</th>
-                      <th class="admin__col-num">Reservas</th>
-                      <th class="admin__col-num">Adultos</th>
-                      <th class="admin__col-num">Niños</th>
-                      <th class="admin__col-num">Bebés</th>
-                      <th class="admin__col-num">Mascotas</th>
-                      <th class="admin__col-num">Total personas</th>
+                <thead>
+                  <tr>
+                    <th>Fecha</th>
+                    <th>Hora</th>
+                    <th>Ruta</th>
+                    <th>Nombre</th>
+                    <th class="admin__col-num">Reservas</th>
+                    <th class="admin__col-num">Adultos</th>
+                    <th class="admin__col-num">Niños</th>
+                    <th class="admin__col-num">Bebés</th>
+                    <th class="admin__col-num">Mascotas</th>
+                    <th class="admin__col-num">Total personas</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.length === 0 && (
+                    <tr class="admin__empty-row">
+                      <td colspan="10">No hay reservas para los filtros seleccionados.</td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {rows.length === 0 && (
-                      <tr class="admin__empty-row">
-                        <td colspan="9">No hay reservas para los filtros seleccionados.</td>
-                      </tr>
-                    )}
-                    {rows.map((r) => (
-                      <tr>
-                        <td>{formatDate(r.date)}</td>
-                        <td>{formatTime(r.time)}</td>
-                        <td>{r.tour_name}</td>
-                        <td class="admin__col-num">{r.booking_count}</td>
-                        <td class="admin__col-num">{r.adults}</td>
-                        <td class="admin__col-num">{r.children}</td>
-                        <td class="admin__col-num">{r.babies}</td>
-                        <td class="admin__col-num">{r.pets}</td>
-                        <td class="admin__col-num admin__col-strong">
-                          {r.adults + r.children + r.babies + r.pets}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  {rows.length > 0 && (
-                    <tfoot>
-                      <tr>
-                        <td colspan="3">Totales</td>
-                        <td class="admin__col-num">{totals.bookings}</td>
-                        <td class="admin__col-num">{totals.adults}</td>
-                        <td class="admin__col-num">{totals.children}</td>
-                        <td class="admin__col-num">{totals.babies}</td>
-                        <td class="admin__col-num">{totals.pets}</td>
-                        <td class="admin__col-num admin__col-strong">
-                          {totals.adults + totals.children + totals.babies + totals.pets}
-                        </td>
-                      </tr>
-                    </tfoot>
                   )}
+                  {rows.map((r) => (
+                    <tr>
+                      <td>{formatDate(r.date)}</td>
+                      <td>{formatTime(r.time)}</td>
+                      <td>{r.tour_name}</td>
+                      <td>{r.customer_names}</td>
+                      <td class="admin__col-num">{r.booking_count}</td>
+                      <td class="admin__col-num">{r.adults}</td>
+                      <td class="admin__col-num">{r.children}</td>
+                      <td class="admin__col-num">{r.babies}</td>
+                      <td class="admin__col-num">{r.pets}</td>
+                      <td class="admin__col-num admin__col-strong">
+                        {r.adults + r.children + r.babies + r.pets}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                {rows.length > 0 && (
+                  <tfoot>
+                    <tr>
+                      <td colspan="4">Totales</td>
+                      <td class="admin__col-num">{totals.bookings}</td>
+                      <td class="admin__col-num">{totals.adults}</td>
+                      <td class="admin__col-num">{totals.children}</td>
+                      <td class="admin__col-num">{totals.babies}</td>
+                      <td class="admin__col-num">{totals.pets}</td>
+                      <td class="admin__col-num admin__col-strong">
+                        {totals.adults + totals.children + totals.babies + totals.pets}
+                      </td>
+                    </tr>
+                  </tfoot>
+                )}
                 </table>
               </div>
             )}
@@ -257,6 +259,11 @@ const formatTime = (value: string) => value?.slice(0, 5) ?? value;
     </main>
 
     <style is:global>
+      .admin__col-name {
+        max-width: 260px;
+        white-space: normal;
+        word-break: break-word;
+      }
       .admin-top__nav {
         margin-left: auto;
         display: flex;
