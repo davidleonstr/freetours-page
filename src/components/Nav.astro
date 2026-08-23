@@ -3,6 +3,10 @@ const links = [
   { href: "/#excursiones", label: "Excursiones" },
   { href: "/blog", label: "Blog" }
 ];
+
+const hiddenLinks = [
+  { href: "/reservar", label: "Reservar" }
+]
 ---
 
 <header class="nav" id="site-nav">
@@ -40,12 +44,15 @@ const links = [
     <a href="/#top" class="nav__logo">
       <img src="/web-icon-orange.svg" height="30" alt="Icon">
       <span class="nav__logo-mark">M</span>
-      <span><em>Meriyo</em> Tours Dublín</span>
+      <span>Meriyo Tours <em>Dublín</em></span>
     </a>
 
     <nav class="nav__links" id="nav-links">
       {links.map((l) => (
         <a href={l.href}>{l.label}</a>
+      ))}
+      {hiddenLinks.map((l) => (
+        <a class="hidden__link" href={l.href}>{l.label}</a>
       ))}
     </nav>
 
@@ -147,9 +154,17 @@ const links = [
     padding: 4px;
   }
 
+  .hidden__link {
+    display: none;
+  }
+
   @media (max-width: 1000px) {
     .nav__logo {
       margin-left: 0px;
+    }
+
+    .hidden__link {
+      display: block;
     }
 
     .nav__links {
