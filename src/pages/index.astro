@@ -70,7 +70,10 @@ import "@/styles/global.css";
             </svg>
           </a>
         </div>
-        <p class="site-footer__copy">© {new Date().getFullYear()} Meriyo Tours (Dublin)</p>
+        <div class="display-legal-items">
+          <a href="/condiciones-reserva" class="site-footer__copy">Condiciones de reserva</a>
+          <p class="site-footer__copy">© {new Date().getFullYear()} Meriyo Tours (Dublin)</p>
+        </div>
       </div>
     </footer>
     <WhatsAppButton />
@@ -78,6 +81,11 @@ import "@/styles/global.css";
 </html>
 
 <style is:global>
+  .display-legal-items {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
   .site-footer {
     background: var(--forest-deep);
     color: var(--parchment-alt);
