@@ -87,6 +87,27 @@ export function listAllTours() {
   return adminRequest("/tours");
 }
 
+// Manually triggers the daily reservations summary email (same job the
+// midnight cron runs) — used by the "Enviar resumen ahora" button on the
+// admin Reservas panel.
+export function sendReservationsSummaryEmail() {
+  return adminRequest("/bookings/summary/send", { method: "POST", needsPublishKey: true });
+}
+
+// --- Reservations summary (aggregated per tour/date/time, for the admin panel) ---
+
+export function listBookingsSummary(params = {}) {
+  const query = new URLSearchParams();
+  if (params.tourId) query.set("tourId", params.tourId);
+  if (params.dateFrom) query.set("dateFrom", params.dateFrom);
+  if (params.dateTo) query.set("dateTo", params.dateTo);
+  if (params.timeFrom) query.set("timeFrom", params.timeFrom);
+  if (params.timeTo) query.set("timeTo", params.timeTo);
+  if (params.includeCancelled) query.set("includeCancelled", "true");
+  const qs = query.toString();
+  return adminRequest(`/bookings/summary${qs ? `?${qs}` : ""}`);
+}
+
 export function getTourById(id) {
   return adminRequest(`/tours/${id}`);
 }
