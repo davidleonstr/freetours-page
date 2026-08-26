@@ -52,7 +52,8 @@ try {
           <a href="/admin/reservations" class="admin-top__nav-link">Reservas</a>
           <a href="/admin/schedules" class="admin-top__nav-link">Horarios</a>
           <a href="/admin/dates" class="admin-top__nav-link">Fechas</a>    
-          <a href="/admin/images" class="admin-top__nav-link">Imagenes</a>       
+          <a href="/admin/images" class="admin-top__nav-link">Imagenes</a>
+          <a href="/admin/stops" class="admin-top__nav-link">Puntos</a>
         </div>
         <button type="button" class="admin-top__back admin-top__logout" id="admin-logout-btn">Cerrar sesión</button>
         <a href="/" class="admin-top__back">← Volver al sitio</a>
@@ -107,6 +108,7 @@ try {
                     <a class="admin__link-btn" href={`/admin/schedules?tour=${t.id}`}>Horarios</a>
                     <a class="admin__link-btn" href={`/admin/dates?tour=${t.id}`}>Fechas</a>
                     <a class="admin__link-btn" href={`/admin/images?tour=${t.id}`}>Imagenes</a>
+                    <a class="admin__link-btn" href={`/admin/stops?tour=${t.id}`}>Puntos</a>
                     <button
                       type="button"
                       class="admin__link-btn admin__link-btn--danger"
@@ -174,7 +176,7 @@ try {
           <div class="field-row">
             <div class="field">
               <label for="f-duration">Duración (horas)</label>
-              <input type="number" id="f-duration" min="1" step="1" />
+              <input type="number" id="f-duration" min="0.25" step="0.25" placeholder="p. ej. 2.5" />
             </div>
             <div class="field">
               <label for="f-capacity">Aforo máximo</label>
@@ -657,6 +659,8 @@ try {
             <button type="button" class="admin__link-btn" data-edit-tour="${t.id}">Editar</button>
             <a class="admin__link-btn" href="/admin/schedules?tour=${t.id}">Horarios</a>
             <a class="admin__link-btn" href="/admin/dates?tour=${t.id}">Fechas</a>
+            <a class="admin__link-btn" href="/admin/images?tour=${t.id}">Imagenes</a>
+            <a class="admin__link-btn" href="/admin/stops?tour=${t.id}">Puntos</a>
             <button type="button" class="admin__link-btn admin__link-btn--danger" data-toggle-tour="${t.id}" data-active="${t.is_active}">${
               t.is_active ? "Archivar" : "Reactivar"
             }</button>

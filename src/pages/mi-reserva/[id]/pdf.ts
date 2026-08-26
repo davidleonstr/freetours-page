@@ -217,7 +217,7 @@ export const GET: APIRoute = async ({ params, request }) => {
   const detailsBoxHeight = detailsHeaderHeight + rowHeight * rows.length + 14;
 
   const warning =
-    "Esta reserva esta condicionada y puede sufrir variaciones o cancelaciones si no se cumple el minimo de personas. Te lo notificaremos por WhatsApp o email. El guía se reserva el derecho de admisión.";
+    "Esta reserva esta condicionada y puede sufrir variaciones o cancelaciones si no se cumple el minimo de 4 personas. Te lo notificaremos por WhatsApp o email. El guía se reserva el derecho de admisión.";
   const warningLines = wrapText(warning, font, 9, contentWidth - 32);
   const warningHeight = warningLines.length * 12 + 24;
 

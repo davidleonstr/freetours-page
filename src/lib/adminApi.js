@@ -178,6 +178,33 @@ export function deleteTourDate(tourId, dateId) {
   return adminRequest(`/tours/${tourId}/dates/${dateId}`, { method: "DELETE", needsPublishKey: true });
 }
 
+// --- Tour stops (ordered route waypoints, distinct from the tour's single
+// required meeting point) — each stop is pinned to a location the same way
+// the meeting point is (address search + click-to-set on an OSM map). ---
+
+export function listTourStops(tourId) {
+  return adminRequest(`/tours/${tourId}/stops`);
+}
+
+export function createTourStop(tourId, payload) {
+  return adminRequest(`/tours/${tourId}/stops`, { method: "POST", body: payload, needsPublishKey: true });
+}
+
+export function updateTourStop(tourId, stopId, payload) {
+  return adminRequest(`/tours/${tourId}/stops/${stopId}`, { method: "PATCH", body: payload, needsPublishKey: true });
+}
+
+export function deleteTourStop(tourId, stopId) {
+  return adminRequest(`/tours/${tourId}/stops/${stopId}`, { method: "DELETE", needsPublishKey: true });
+}
+
+// Reorders every stop of a tour in one call — `order` is an array of stop
+// ids in the desired visiting order (every existing stop id must appear
+// exactly once).
+export function reorderTourStops(tourId, order) {
+  return adminRequest(`/tours/${tourId}/stops/order`, { method: "PUT", body: { order }, needsPublishKey: true });
+}
+
 // --- Gallery (per-tour image ordering) ---
 
 export function getTourGallery(tourId) {

@@ -60,6 +60,26 @@ try {
   console.error('Failed to load reviews from the API', err);
   reviewsError = true;
 }
+
+// --- NEW: Helper function to format decimal hours into hours and minutes ---
+function formatDuration(hoursFloat: number | null) {
+  if (!hoursFloat) return "Duración flexible";
+
+  const hours = Math.floor(hoursFloat);
+  const minutes = Math.round((hoursFloat - hours) * 60);
+
+  let timeParts = [];
+  
+  if (hours > 0) {
+    timeParts.push(hours === 1 ? "1 hora" : `${hours} horas`);
+  }
+  
+  if (minutes > 0) {
+    timeParts.push(`${minutes} minutos`);
+  }
+
+  return timeParts.join(" y ") + " de trayecto";
+}
 ---
 
 <section class="tours" id="excursiones">
@@ -92,8 +112,10 @@ try {
           <div class="card__overlay">
             <h3 class="card__name">{t.name}</h3>
             <p class="card__desc">{t.description}</p>
+            
+            {/* --- UPDATED: Using the formatDuration helper --- */}
             <p class="card__meta">
-              {t.duration_hours ? `${t.duration_hours} horas` : "Duración flexible"}
+              {formatDuration(t.duration_hours)}
             </p>
 
             <div class="card__actions">
@@ -271,27 +293,41 @@ try {
     color: var(--ink);
   }
 
+  /* ---------- Description with Scroll ---------- */
   .card__desc {
     font-size: 0.92rem;
     line-height: 1.55;
     color: #3c4a3d;
     margin: 0 0 12px;
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 8px;
+    
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0,0,0,0.15) transparent;
   }
 
+  .card__desc::-webkit-scrollbar { width: 4px; }
+  .card__desc::-webkit-scrollbar-track { background: transparent; }
+  .card__desc::-webkit-scrollbar-thumb { background-color: rgba(0, 0, 0, 0.15); border-radius: 4px; }
+
+  /* ---------- Meta & Actions ---------- */
   .card__meta {
     font-family: var(--font-display);
     font-style: italic;
     font-size: 0.92rem;
     color: var(--russet);
-    margin: 0 0 20px;
+    margin: 0 0 16px;
+    padding-top: 10px; 
   }
 
   .card__actions {
-    margin-top: auto;
+    margin-top: 0;
     display: flex;
     gap: 10px;
     flex-wrap: wrap;
     padding-top: 16px;
+    border-top: 1px solid rgba(0, 0, 0, 0.08); 
   }
 
   @media (max-width: 940px) {

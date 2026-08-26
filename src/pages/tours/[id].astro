@@ -91,6 +91,31 @@ function splitCaption(text: string): { title: string | null; body: string | null
   }
   return { title: null, body: trimmed };
 }
+
+// Each gallery image is one stop on the route: its alt text is split into
+// a short title (the stop's name) and a body (what happens there), the
+// same convention used to compose booking-ticket copy elsewhere. Numbered
+// 1, 2, 3… in gallery order, mirroring the waypoint layout used in the
+// "arrival guide" post.
+const routeStops = (tour.gallery ?? []).map((img: any, index: number) => {
+  const parts = img.alt ? splitCaption(img.alt) : null;
+  return {
+    number: index + 1,
+    image: img,
+    title: parts?.title ?? null,
+    body: parts?.body ?? (parts ? null : img.alt ?? null)
+  };
+});
+
+// Helper to format decimal hours into hours and minutes
+function formatDuration(decimalHours: number): string {
+  const h = Math.floor(decimalHours);
+  const m = Math.round((decimalHours - h) * 60);
+  const parts = [];
+  if (h > 0) parts.push(`${h}h`);
+  if (m > 0) parts.push(`${m}m`);
+  return parts.join(' ') + ' de duración';
+}
 ---
 
 <!doctype html>
@@ -120,42 +145,32 @@ function splitCaption(text: string): { title: string | null; body: string | null
           <p class="tour-detail__desc">{tour.description}</p>
 
           <div class="tour-detail__meta">
-            {tour.duration_hours && <span>{tour.duration_hours}h de duración</span>}
+            {tour.duration_hours != null && <span>{formatDuration(Number(tour.duration_hours))}</span>}
             {summary && summary.reviewCount > 0 && (
               <span>★ {summary.averageStars.toFixed(1)} ({summary.reviewCount} {summary.reviewCount === 1 ? 'reseña' : 'reseñas'})</span>
             )}
           </div>
 
-          {tour.gallery?.length > 0 && (
-            <div class="tour-highlights">
-              <div class="tour-highlights__text">
-                <h2 class="tour-highlights__title">¿Qué veremos durante el tour?</h2>
-                <p>El recorrido está dividido en puntos; puedes ver las descripciones de los puntos en las imágenes.</p>
-              </div>
+          {routeStops.length > 0 && (
+            <div class="tour-route-section">
+              <h2 class="tour-route-section__title">¿Qué veremos durante el tour?</h2>
+              <p class="tour-route-section__lede">El recorrido está dividido en puntos — así es, paso a paso.</p>
 
-              <div class="tour-highlights__carousel-wrap">
-                <div class="tour-highlights__carousel" id="gallery-carousel">
-                  {tour.gallery.map((img: any) => {
-                    const parts = img.alt ? splitCaption(img.alt) : null;
-                    return (
-                      <div class="carousel-slide" data-slide tabindex="0">
-                        <img src={img.url} alt={img.alt ?? tour.name} loading="lazy" />
-                        {parts && (
-                          <div class="carousel-caption">
-                            {parts.title && <p class="carousel-caption__title">{parts.title}</p>}
-                            {parts.body && <p class="carousel-caption__body">{parts.body}</p>}
-                          </div>
-                        )}
+              <div class="tour-route">
+                {routeStops.map((stop: any) => (
+                  <div class="tour-route__stop">
+                    <div class="tour-route__marker">{stop.number}</div>
+                    <div class="tour-route__content">
+                      <figure class="tour-route__figure">
+                        <img src={stop.image.url} alt={stop.image.alt ?? tour.name} loading="lazy" />
+                      </figure>
+                      <div class="tour-route__text">
+                        {stop.title && <h3 class="tour-route__stop-title">{stop.title}</h3>}
+                        {stop.body && <p class="tour-route__stop-body">{stop.body}</p>}
                       </div>
-                    );
-                  })}
-                </div>
-
-                <div class="tour-highlights__dots" id="gallery-dots">
-                  {tour.gallery.map((_: any, i: number) => (
-                    <button type="button" class="carousel-dot" data-dot data-index={i} aria-label={`Ir a la imagen ${i + 1}`}></button>
-                  ))}
-                </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           )}
@@ -174,6 +189,19 @@ function splitCaption(text: string): { title: string | null; body: string | null
           )}
         </div>
       </section>
+
+      {tour.stops && tour.stops.length > 0 && (
+        <section class="tour-stops-map-section">
+          <div class="wrap">
+            <p class="eyebrow">Recorrido</p>
+            <h2 class="tour-stops-map-section__title">Mapa de la ruta</h2>
+            <div id="tour-stops-map" class="tour-stops-map"></div>
+            <p class="tour-detail__map-attribution">
+              Mapa de <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors
+            </p>
+          </div>
+        </section>
+      )}
 
       <section class="tour-reviews">
         <div class="wrap">
@@ -250,6 +278,48 @@ function splitCaption(text: string): { title: string | null; body: string | null
 </html>
 
 <style is:global>
+  .tour-stops-map-section {
+    background: var(--parchment);
+    padding-block: 0 70px;
+  }
+  .tour-stops-map-section__title {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(1.5rem, 2.6vw, 1.9rem);
+    color: var(--ink);
+    margin: 10px 0 20px;
+  }
+  .tour-stops-map {
+    width: 100%;
+    height: 380px;
+    border-radius: var(--radius);
+    overflow: hidden;
+    border: 1px solid rgba(24, 34, 25, 0.12);
+  }
+  .tour-stops-map__marker span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--forest-deep);
+    color: var(--gold);
+    border: 2px solid var(--gold);
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 0.85rem;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+  }
+  .tour-stops-map .leaflet-popup-content {
+    font-family: var(--font-body);
+    font-size: 0.85rem;
+    color: var(--ink);
+  }
+
+  @media (max-width: 640px) {
+    .tour-stops-map { height: 280px; }
+  }
   .tour-detail {
     background: var(--parchment);
     padding-block: 64px 60px;
@@ -273,7 +343,8 @@ function splitCaption(text: string): { title: string | null; body: string | null
     gap: 18px;
     flex-wrap: wrap;
     font-size: 0.85rem;
-    color: #5a6b5c;
+    font-weight: bold;
+    color: var(--gold);
     margin: 0 0 28px;
   }
 
@@ -312,106 +383,108 @@ function splitCaption(text: string): { title: string | null; body: string | null
     gap: 14px;
     margin-top: 40px;
   }
-  .tour-highlights {
-    display: grid;
-    margin-bottom: 45px;
-    grid-template-columns: minmax(240px, 340px) 1fr;
-    gap: 40px;
-    align-items: start;
+
+  /* ---------- Route / waypoints (numbered stops, like the arrival-guide post) ---------- */
+  .tour-route-section {
     margin-top: 56px;
+    margin-bottom: 45px;
   }
-  .tour-highlights__title {
+  .tour-route-section__title {
     font-family: var(--font-display);
     font-weight: 600;
     font-size: clamp(1.5rem, 2.6vw, 1.9rem);
     color: var(--ink);
-    margin: 0 0 16px;
+    margin: 0 0 10px;
   }
-  .tour-highlights__text p {
+  .tour-route-section__lede {
     font-size: 0.95rem;
     line-height: 1.7;
     color: #3c4a3d;
-    margin: 0 0 16px;
+    margin: 0 0 28px;
   }
 
-  .tour-highlights__carousel-wrap { min-width: 0; }
-  .tour-highlights__carousel {
-    display: flex;
-    gap: 14px;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    scrollbar-width: none;
-    padding-bottom: 4px;
-  }
-  .tour-highlights__carousel::-webkit-scrollbar { display: none; }
-
-  .carousel-slide {
+  .tour-route {
     position: relative;
-    flex: 0 0 auto;
-    width: min(230px, 70vw);
-    height: 280px;
+    padding-left: 56px;
+  }
+  /* the dashed connecting line running through every marker, same device
+     used on the arrival-guide page's waypoint list */
+  .tour-route::before {
+    content: "";
+    position: absolute;
+    left: 19px;
+    top: 6px;
+    bottom: 6px;
+    width: 2px;
+    background-image: linear-gradient(to bottom, var(--gold) 60%, transparent 0%);
+    background-size: 2px 12px;
+    background-repeat: repeat-y;
+  }
+
+  .tour-route__stop {
+    position: relative;
+    padding-block: 32px;
+    border-bottom: 1px solid rgba(24, 34, 25, 0.12);
+  }
+  .tour-route__stop:first-child { padding-top: 4px; }
+  .tour-route__stop:last-child { border-bottom: none; }
+
+  .tour-route__marker {
+    position: absolute;
+    left: -56px;
+    top: 32px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--forest-deep);
+    color: var(--gold);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 1rem;
+    border: 2px solid var(--gold);
+  }
+
+  .tour-route__content {
+    display: grid;
+    grid-template-columns: minmax(200px, 280px) 1fr;
+    gap: 24px;
+    align-items: center;
+  }
+  .tour-route__figure {
+    margin: 0;
     border-radius: var(--radius);
     overflow: hidden;
-    scroll-snap-align: start;
     border: 1px solid rgba(24, 34, 25, 0.1);
   }
-  .carousel-slide img {
+  .tour-route__figure img {
     width: 100%;
-    height: 100%;
+    height: 190px;
     object-fit: cover;
     display: block;
   }
-
-  .carousel-caption {
-    position: absolute;
-    inset: auto 0 0 0;
-    background: linear-gradient(to top, rgba(27, 41, 33, 0.9), rgba(27, 41, 33, 0));
-    padding: 40px 16px 14px;
-    opacity: 0;
-    transform: translateY(8px);
-    transition: opacity 0.2s ease, transform 0.2s ease;
-    pointer-events: none;
-  }
-  .carousel-slide:hover .carousel-caption,
-  .carousel-slide:focus-within .carousel-caption,
-  .carousel-slide:focus .carousel-caption {
-    opacity: 1;
-    transform: translateY(0);
-  }
-
-  .carousel-caption__title {
+  .tour-route__stop-title {
     font-family: var(--font-display);
     font-weight: 600;
-    font-size: 1.05rem;
-    color: var(--cream);
-    margin: 0 0 6px;
+    font-size: 1.25rem;
+    color: var(--ink);
+    margin: 0 0 10px;
   }
-  .carousel-caption__body {
-    font-size: 0.8rem;
-    line-height: 1.55;
-    color: var(--parchment-alt);
+  .tour-route__stop-body {
+    font-size: 0.95rem;
+    line-height: 1.7;
+    color: #3c4a3d;
     margin: 0;
   }
 
-  .tour-highlights__dots {
-    display: flex;
-    justify-content: center;
-    gap: 8px;
-    margin-top: 16px;
-  }
-  .carousel-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    border: none;
-    background: rgba(24, 34, 25, 0.2);
-    padding: 0;
-    cursor: pointer;
-  }
-  .carousel-dot.is-active { background: var(--ink); }
-
-  @media (max-width: 780px) {
-    .tour-highlights { grid-template-columns: 1fr; }
+  @media (max-width: 620px) {
+    .tour-route { padding-left: 44px; }
+    .tour-route::before { left: 15px; }
+    .tour-route__marker { left: -44px; width: 32px; height: 32px; font-size: 0.9rem; top: 28px; }
+    .tour-route__content { grid-template-columns: 1fr; }
+    .tour-route__figure img { height: 200px; }
   }
 
   .tour-reviews {
@@ -568,36 +641,60 @@ function splitCaption(text: string): { title: string | null; body: string | null
   }
 </style>
 
-<script define:vars={{ tourId: tour.id }}>
-  const carousel = document.getElementById('gallery-carousel');
-  const dotsWrap = document.getElementById('gallery-dots');
+<script define:vars={{ stops: tour.stops ?? [], meetingLat: tour.meeting_point_lat, meetingLng: tour.meeting_point_lng, meetingAddress: tour.meeting_point ?? '' }}>
+  function initStopsMap() {
+    const mapEl = document.getElementById('tour-stops-map');
+    if (!mapEl || typeof L === 'undefined') return;
 
-  if (carousel && dotsWrap) {
-    const slides = Array.from(carousel.querySelectorAll('[data-slide]'));
-    const dots = Array.from(dotsWrap.querySelectorAll('[data-dot]'));
+    const points = [];
+    if (meetingLat != null && meetingLng != null) {
+      points.push({ lat: meetingLat, lng: meetingLng, label: meetingAddress || 'Punto de encuentro', isStart: true });
+    }
+    stops.forEach((s, i) => {
+      points.push({ lat: s.lat, lng: s.lng, label: s.name, description: s.description, number: i + 1 });
+    });
+    if (points.length === 0) return;
 
-    dots.forEach((dot, i) => {
-      dot.addEventListener('click', () => {
-        slides[i]?.scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' });
+    const map = L.map('tour-stops-map', { scrollWheelZoom: false });
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+
+    function numberedIcon(label) {
+      return L.divIcon({
+        className: 'tour-stops-map__marker',
+        html: `<span>${label}</span>`,
+        iconSize: [32, 32],
+        iconAnchor: [16, 16]
       });
+    }
+
+    const latlngs = [];
+    points.forEach((p) => {
+      const marker = L.marker([p.lat, p.lng], { icon: numberedIcon(p.isStart ? 'M' : p.number) }).addTo(map);
+      const parts = [`<strong>${p.isStart ? 'Punto de encuentro' : (p.label ?? `Parada ${p.number}`)}</strong>`];
+      if (p.description) parts.push(p.description);
+      marker.bindPopup(parts.join('<br>'));
+      latlngs.push([p.lat, p.lng]);
     });
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const idx = slides.indexOf(entry.target);
-            dots.forEach((d) => d.classList.remove('is-active'));
-            dots[idx]?.classList.add('is-active');
-          }
-        });
-      },
-      { root: carousel, threshold: 0.6 }
-    );
-    slides.forEach((s) => observer.observe(s));
-    dots[0]?.classList.add('is-active');
+    if (latlngs.length > 1) {
+      L.polyline(latlngs, { color: '#d99b32', weight: 3, dashArray: '6 8' }).addTo(map);
+      map.fitBounds(latlngs, { padding: [30, 30] });
+    } else {
+      map.setView(latlngs[0], 16);
+    }
   }
 
+  if (typeof L !== 'undefined') {
+    initStopsMap();
+  } else {
+    window.addEventListener('load', initStopsMap);
+  }
+</script>
+
+<script define:vars={{ tourId: tour.id }}>
   const form = document.getElementById('review-form');
 
   if (form) {
@@ -733,5 +830,4 @@ function splitCaption(text: string): { title: string | null; body: string | null
   } else {
     window.addEventListener('load', initMeetingPointMap);
   }
-</script>
 </script>
