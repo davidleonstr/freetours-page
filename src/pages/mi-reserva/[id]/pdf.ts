@@ -540,6 +540,27 @@ export const GET: APIRoute = async ({ params, request }) => {
     color: COLOR.goldSoft,
   });
 
+  // Privacy policy link, right below the copyright line. Drawn as plain
+  // text plus a Link annotation over the same rect (pdf-lib has no
+  // built-in "hyperlinked text" helper, same approach as drawButton above).
+  const privacyLabel = "Política de privacidad";
+  const privacyUrl = "https://www.meriyotoursdublin.com/politicas-privacidad";
+  const privacySize = 8;
+  const privacyWidth = font.widthOfTextAtSize(privacyLabel, privacySize);
+  const privacyY = footerBandHeight - 58;
+  page.drawText(privacyLabel, {
+    x: marginX,
+    y: privacyY,
+    size: privacySize,
+    font,
+    color: COLOR.goldSoft,
+  });
+  addLinkAnnotation(
+    page,
+    [marginX, privacyY - 2, marginX + privacyWidth, privacyY + privacySize],
+    privacyUrl
+  );
+
   const pdfBytes = await pdfDoc.save();
 
   return new Response(pdfBytes, {
