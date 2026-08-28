@@ -3,21 +3,16 @@
 // Thin server-side proxy, same reason getTourSchedules needed
 // src/pages/api/tours/[id]/schedules.js: the browser can't hold API_KEY,
 // so client-side <script> code calls this route instead of the backend
-// directly. This route runs server-side (has API_KEY via api.js) and
-// forwards the customer's own session token as a Bearer header so the
-// backend's ownership check (request.user.sub === booking.customer_id)
-// applies — this route does NOT need to duplicate that check itself.
+// directly. This route runs server-side (has API_KEY via api.js).
+//
+// No login/session required — anyone with the booking id (from the
+// ticket email / manage link / QR code) can edit or cancel it. The
+// backend (PATCH/DELETE /bookings/:id in routes/bookings.js) no longer
+// requires a Bearer token either, so this proxy doesn't need to gate on
+// a session cookie or forward one.
 import { updateBooking, cancelBooking, ApiError } from "@/lib/api.js";
-import { getSessionToken } from "@/lib/session.js";
 
 export const prerender = false;
-
-function unauthorized() {
-  return new Response(JSON.stringify({ message: "No has iniciado sesión." }), {
-    status: 401,
-    headers: { "Content-Type": "application/json" }
-  });
-}
 
 function fromApiError(err) {
   const status = err instanceof ApiError ? err.status : 500;
@@ -28,10 +23,7 @@ function fromApiError(err) {
   });
 }
 
-export async function PATCH({ params, request, cookies }) {
-  const token = getSessionToken(cookies);
-  if (!token) return unauthorized();
-
+export async function PATCH({ params, request }) {
   let data;
   try {
     data = await request.json();
@@ -40,7 +32,7 @@ export async function PATCH({ params, request, cookies }) {
   }
 
   try {
-    const updated = await updateBooking(params.id, data, token);
+    const updated = await updateBooking(params.id, data);
     return new Response(JSON.stringify(updated), {
       status: 200,
       headers: { "Content-Type": "application/json" }
@@ -50,12 +42,9 @@ export async function PATCH({ params, request, cookies }) {
   }
 }
 
-export async function DELETE({ params, cookies }) {
-  const token = getSessionToken(cookies);
-  if (!token) return unauthorized();
-
+export async function DELETE({ params }) {
   try {
-    const cancelled = await cancelBooking(params.id, token);
+    const cancelled = await cancelBooking(params.id);
     return new Response(JSON.stringify(cancelled), {
       status: 200,
       headers: { "Content-Type": "application/json" }
