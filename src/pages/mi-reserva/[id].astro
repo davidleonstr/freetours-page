@@ -487,166 +487,156 @@ const partySummary = [
 </style>
 
 <script define:vars={{ bookingId: booking.id, canModify }}>
-  import("/src/lib/confirmDialog.js").then(({ initConfirmDialog, confirmDialog }) => {
-    initConfirmDialog();
+  import { initConfirmDialog, confirmDialog } from "@/lib/confirmDialog.js";
 
-    const banner = document.getElementById("reserva-banner");
-    const editBtn = document.getElementById("edit-reserva-btn");
-    const cancelBtn = document.getElementById("cancel-reserva-btn");
-    const cancelEditBtn = document.getElementById("cancel-edit-btn");
-    const editForm = document.getElementById("edit-reserva-form");
-    const editError = document.getElementById("edit-reserva-error");
-    const saveBtn = document.getElementById("save-reserva-btn");
-    const actions = document.querySelector(".reserva-actions");
-    const partyDisplay = document.getElementById("reserva-party-display");
-    const dateDisplay = document.getElementById("reserva-date-display");
-    const timeDisplay = document.getElementById("reserva-time-display");
-    const dateSelect = document.getElementById("edit-date");
-    const scheduleSelect = document.getElementById("edit-schedule");
-    const quantityInput = document.getElementById("edit-quantity");
-    const childrenInput = document.getElementById("edit-children");
-    const babiesInput = document.getElementById("edit-babies");
-    const petsInput = document.getElementById("edit-pets");
-    const statusPill = document.getElementById("status-pill");
+  initConfirmDialog();
 
-    function showBanner(message, isError = false) {
-      if (!banner) return;
-      banner.textContent = message;
-      banner.classList.remove("is-hidden");
-      banner.classList.toggle("admin__banner--error", isError);
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
+  const banner = document.getElementById("reserva-banner");
+  const editBtn = document.getElementById("edit-reserva-btn");
+  const cancelBtn = document.getElementById("cancel-reserva-btn");
+  const cancelEditBtn = document.getElementById("cancel-edit-btn");
+  const editForm = document.getElementById("edit-reserva-form");
+  const editError = document.getElementById("edit-reserva-error");
+  const saveBtn = document.getElementById("save-reserva-btn");
+  const actions = document.querySelector(".reserva-actions");
+  const partyDisplay = document.getElementById("reserva-party-display");
+  const dateDisplay = document.getElementById("reserva-date-display");
+  const timeDisplay = document.getElementById("reserva-time-display");
+  const dateSelect = document.getElementById("edit-date");
+  const scheduleSelect = document.getElementById("edit-schedule");
+  const quantityInput = document.getElementById("edit-quantity");
+  const childrenInput = document.getElementById("edit-children");
+  const babiesInput = document.getElementById("edit-babies");
+  const petsInput = document.getElementById("edit-pets");
+  const statusPill = document.getElementById("status-pill");
 
-    function partySummary(quantity, children, babies, pets) {
-      const parts = [`${quantity} adulto${quantity === 1 ? "" : "s"}`];
-      if (children) parts.push(`${children} niño${children === 1 ? "" : "s"}`);
-      if (babies) parts.push(`${babies} bebé${babies === 1 ? "" : "s"}`);
-      if (pets) parts.push(`${pets} mascota${pets === 1 ? "" : "s"}`);
-      return parts.join(", ");
-    }
+  function showBanner(message, isError = false) {
+    if (!banner) return;
+    banner.textContent = message;
+    banner.classList.remove("is-hidden");
+    banner.classList.toggle("admin__banner--error", isError);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
 
-    editBtn?.addEventListener("click", () => {
-      editForm?.classList.remove("is-hidden");
-      actions?.classList.add("is-hidden");
-    });
+  function partySummary(quantity, children, babies, pets) {
+    const parts = [`${quantity} adulto${quantity === 1 ? "" : "s"}`];
+    if (children) parts.push(`${children} niño${children === 1 ? "" : "s"}`);
+    if (babies) parts.push(`${babies} bebé${babies === 1 ? "" : "s"}`);
+    if (pets) parts.push(`${pets} mascota${pets === 1 ? "" : "s"}`);
+    return parts.join(", ");
+  }
 
-    cancelEditBtn?.addEventListener("click", () => {
-      editForm?.classList.add("is-hidden");
-      actions?.classList.remove("is-hidden");
-      editError?.classList.add("is-hidden");
-    });
+  editBtn?.addEventListener("click", () => {
+    editForm?.classList.remove("is-hidden");
+    actions?.classList.add("is-hidden");
+  });
 
-    editForm?.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      editError?.classList.add("is-hidden");
-      if (!saveBtn) return;
+  cancelEditBtn?.addEventListener("click", () => {
+    editForm?.classList.add("is-hidden");
+    actions?.classList.remove("is-hidden");
+    editError?.classList.add("is-hidden");
+  });
 
-      saveBtn.disabled = true;
-      saveBtn.textContent = "Guardando…";
+  editForm?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    editError?.classList.add("is-hidden");
+    if (!saveBtn) return;
 
-      const quantity = Number(quantityInput.value);
-      const numberOfChildren = Number(childrenInput.value || 0);
-      const numberOfBabies = Number(babiesInput.value || 0);
-      const numberOfPets = Number(petsInput.value || 0);
+    saveBtn.disabled = true;
+    saveBtn.textContent = "Guardando…";
 
-      const payload = {
-        quantity,
-        numberOfChildren,
-        numberOfBabies,
-        numberOfPets,
-        ...(dateSelect ? { tourDateId: dateSelect.value } : {}),
-        ...(scheduleSelect ? { tourScheduleId: scheduleSelect.value } : {})
-      };
+    const quantity = Number(quantityInput.value);
+    const numberOfChildren = Number(childrenInput.value || 0);
+    const numberOfBabies = Number(babiesInput.value || 0);
+    const numberOfPets = Number(petsInput.value || 0);
 
-      try {
-        const res = await fetch(`/api/bookings/${bookingId}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data?.message || "No se ha podido actualizar la reserva.");
+    const payload = {
+      quantity,
+      numberOfChildren,
+      numberOfBabies,
+      numberOfPets,
+      ...(dateSelect ? { tourDateId: dateSelect.value } : {}),
+      ...(scheduleSelect ? { tourScheduleId: scheduleSelect.value } : {})
+    };
 
-        if (partyDisplay) partyDisplay.textContent = partySummary(quantity, numberOfChildren, numberOfBabies, numberOfPets);
-        if (dateDisplay && data?.tour_date) {
-          dateDisplay.textContent = new Date(data.tour_date.split("T")[0] + "T00:00:00").toLocaleDateString("es-ES", {
-            day: "numeric",
-            month: "long",
-            year: "numeric"
-          });
-        }
-        if (timeDisplay && dateSelect) {
-          const selectedOption = dateSelect.options[dateSelect.selectedIndex];
-          if (selectedOption) dateDisplay.textContent = selectedOption.textContent;
-        }
-        if (timeDisplay && scheduleSelect) {
-          const selectedTime = scheduleSelect.options[scheduleSelect.selectedIndex];
-          if (selectedTime) timeDisplay.textContent = selectedTime.textContent;
-        }
-
-        editForm.classList.add("is-hidden");
-        actions?.classList.remove("is-hidden");
-        showBanner("Reserva actualizada correctamente. Te hemos enviado un ticket actualizado por email.");
-      } catch (err) {
-        if (editError) {
-          editError.textContent = err?.message || "No se ha podido actualizar la reserva.";
-          editError.classList.remove("is-hidden");
-        }
-      } finally {
-        saveBtn.disabled = false;
-        saveBtn.textContent = "Guardar cambios";
-      }
-    });
-
-    async function cancelReserva() {
-      const confirmed = await confirmDialog({
-        title: "Cancelar reserva",
-        message: "¿Seguro que quieres cancelar esta reserva? Esta acción no se puede deshacer.",
-        confirmLabel: "Cancelar reserva"
+    try {
+      const res = await fetch(`/api/bookings/${bookingId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
       });
-      if (!confirmed) return;
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.message || "No se ha podido actualizar la reserva.");
 
-      cancelBtn?.setAttribute("disabled", "true");
-      try {
-        const res = await fetch(`/api/bookings/${bookingId}`, { method: "DELETE" });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data?.message || "No se ha podido cancelar la reserva.");
-
-        if (statusPill) {
-          statusPill.textContent = "Cancelada";
-          statusPill.className = "status-pill status-pill--cancelled";
-        }
-        actions?.remove();
-        editForm?.remove();
-        showBanner("Reserva cancelada. Te hemos enviado la confirmación por email.");
-      } catch (err) {
-        showBanner(err?.message || "No se ha podido cancelar la reserva.", true);
-        cancelBtn?.removeAttribute("disabled");
+      if (partyDisplay) partyDisplay.textContent = partySummary(quantity, numberOfChildren, numberOfBabies, numberOfPets);
+      if (dateDisplay && data?.tour_date) {
+        dateDisplay.textContent = new Date(data.tour_date.split("T")[0] + "T00:00:00").toLocaleDateString("es-ES", {
+          day: "numeric",
+          month: "long",
+          year: "numeric"
+        });
       }
-    }
-
-    cancelBtn?.addEventListener("click", cancelReserva);
-
-    // The "Cancelar reserva" button in the booking email links here with
-    // ?cancel=true. Strip the param immediately so a page refresh or the
-    // browser back button can't re-trigger this. Deliberately NOT auto-
-    // cancelling on arrival: mail clients and corporate security scanners
-    // (Gmail/Outlook Safe Links, antivirus link-checkers, etc.) commonly
-    // pre-fetch links inside emails to scan them for safety, which would
-    // silently cancel the booking before the customer ever saw the page.
-    // Landing here just opens the same confirmation dialog the manual
-    // button uses, so cancellation still requires an explicit click from
-    // a real visitor.
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("cancel") === "true") {
-      history.replaceState(null, "", window.location.pathname);
-      if (canModify && cancelBtn) {
-        cancelReserva();
-      } else {
-        showBanner("Esta reserva ya no se puede cancelar.", true);
+      if (timeDisplay && dateSelect) {
+        const selectedOption = dateSelect.options[dateSelect.selectedIndex];
+        if (selectedOption) dateDisplay.textContent = selectedOption.textContent;
       }
+      if (timeDisplay && scheduleSelect) {
+        const selectedTime = scheduleSelect.options[scheduleSelect.selectedIndex];
+        if (selectedTime) timeDisplay.textContent = selectedTime.textContent;
+      }
+
+      editForm.classList.add("is-hidden");
+      actions?.classList.remove("is-hidden");
+      showBanner("Reserva actualizada correctamente. Te hemos enviado un ticket actualizado por email.");
+    } catch (err) {
+      if (editError) {
+        editError.textContent = err?.message || "No se ha podido actualizar la reserva.";
+        editError.classList.remove("is-hidden");
+      }
+    } finally {
+      saveBtn.disabled = false;
+      saveBtn.textContent = "Guardar cambios";
     }
   });
+
+  async function cancelReserva() {
+    const confirmed = await confirmDialog({
+      title: "Cancelar reserva",
+      message: "¿Seguro que quieres cancelar esta reserva? Esta acción no se puede deshacer.",
+      confirmLabel: "Cancelar reserva"
+    });
+    if (!confirmed) return;
+
+    cancelBtn?.setAttribute("disabled", "true");
+    try {
+      const res = await fetch(`/api/bookings/${bookingId}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.message || "No se ha podido cancelar la reserva.");
+
+      if (statusPill) {
+        statusPill.textContent = "Cancelada";
+        statusPill.className = "status-pill status-pill--cancelled";
+      }
+      actions?.remove();
+      editForm?.remove();
+      showBanner("Reserva cancelada. Te hemos enviado la confirmación por email.");
+    } catch (err) {
+      showBanner(err?.message || "No se ha podido cancelar la reserva.", true);
+      cancelBtn?.removeAttribute("disabled");
+    }
+  }
+
+  cancelBtn?.addEventListener("click", cancelReserva);
+
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("cancel") === "true") {
+    history.replaceState(null, "", window.location.pathname);
+    if (canModify && cancelBtn) {
+      cancelReserva();
+    } else {
+      showBanner("Esta reserva ya no se puede cancelar.", true);
+    }
+  }
 </script>
 
 <!--
