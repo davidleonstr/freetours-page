@@ -61,24 +61,34 @@ try {
   reviewsError = true;
 }
 
-// --- NEW: Helper function to format decimal hours into hours and minutes ---
+// --- UPDATED: Helper that builds a "de X a Y" duration range ---
+function formatTimeParts(hours: number, minutes: number) {
+  const parts = [];
+  if (hours > 0) parts.push(hours === 1 ? "1 hora" : `${hours} horas`);
+  if (minutes > 0) parts.push(`${minutes} minutos`);
+  return parts.join(" y ");
+}
+
 function formatDuration(hoursFloat: number | null) {
   if (!hoursFloat) return "Duración flexible";
 
-  const hours = Math.floor(hoursFloat);
-  const minutes = Math.round((hoursFloat - hours) * 60);
+  const startHours = Math.floor(hoursFloat);
+  const startMinutes = Math.round((hoursFloat - startHours) * 60);
 
-  let timeParts = [];
-  
-  if (hours > 0) {
-    timeParts.push(hours === 1 ? "1 hora" : `${hours} horas`);
-  }
-  
-  if (minutes > 0) {
-    timeParts.push(`${minutes} minutos`);
+  let endHours: number;
+  let endMinutes: number;
+
+  if (startMinutes > 0) {
+    // Has minutes → round up to the next whole hour
+    endHours = startHours + 1;
+    endMinutes = 0;
+  } else {
+    // Exact hour → add half an hour
+    endHours = startHours;
+    endMinutes = 30;
   }
 
-  return timeParts.join(" y ") + " de trayecto";
+  return `De ${formatTimeParts(startHours, startMinutes)} a ${formatTimeParts(endHours, endMinutes)} de trayecto`;
 }
 ---
 
@@ -195,7 +205,7 @@ function formatDuration(hoursFloat: number | null) {
 
   .card {
     position: relative;
-    height: 440px;
+    height: 500px;
     border-radius: var(--radius);
     overflow: hidden;
     border: 1px solid rgba(24, 34, 25, 0.1);
@@ -335,7 +345,15 @@ function formatDuration(hoursFloat: number | null) {
   }
   @media (max-width: 640px) {
     .tours__grid { grid-template-columns: 1fr; }
-    .card { height: 400px; }
+    .card { height: 600px; }
+    .card__actions {
+      flex-wrap: nowrap;
+      gap: 6px;
+    }
+    .card__actions .btn {
+      flex: 1;
+      font-size: 0.90rem;
+    }
   }
 </style>
 

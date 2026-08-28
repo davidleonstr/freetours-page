@@ -107,14 +107,34 @@ const routeStops = (tour.gallery ?? []).map((img: any, index: number) => {
   };
 });
 
-// Helper to format decimal hours into hours and minutes
-function formatDuration(decimalHours: number): string {
-  const h = Math.floor(decimalHours);
-  const m = Math.round((decimalHours - h) * 60);
+// --- UPDATED: Helper that builds a "de X a Y" duration range ---
+function formatTimeParts(hours: number, minutes: number) {
   const parts = [];
-  if (h > 0) parts.push(`${h}h`);
-  if (m > 0) parts.push(`${m}m`);
-  return parts.join(' ') + ' de duración';
+  if (hours > 0) parts.push(hours === 1 ? "1 hora" : `${hours} horas`);
+  if (minutes > 0) parts.push(`${minutes} minutos`);
+  return parts.join(" y ");
+}
+
+function formatDuration(hoursFloat: number | null) {
+  if (!hoursFloat) return "Duración flexible";
+
+  const startHours = Math.floor(hoursFloat);
+  const startMinutes = Math.round((hoursFloat - startHours) * 60);
+
+  let endHours: number;
+  let endMinutes: number;
+
+  if (startMinutes > 0) {
+    // Has minutes → round up to the next whole hour
+    endHours = startHours + 1;
+    endMinutes = 0;
+  } else {
+    // Exact hour → add half an hour
+    endHours = startHours;
+    endMinutes = 30;
+  }
+
+  return `De ${formatTimeParts(startHours, startMinutes)} a ${formatTimeParts(endHours, endMinutes)} de trayecto`;
 }
 ---
 
@@ -145,7 +165,7 @@ function formatDuration(decimalHours: number): string {
           <p class="tour-detail__desc">{tour.description}</p>
 
           <div class="tour-detail__meta">
-            {tour.duration_hours != null && <span>{formatDuration(Number(tour.duration_hours))}</span>}
+            {<span>{formatDuration(Number(tour.duration_hours))}</span>}
             {summary && summary.reviewCount > 0 && (
               <span>★ {summary.averageStars.toFixed(1)} ({summary.reviewCount} {summary.reviewCount === 1 ? 'reseña' : 'reseñas'})</span>
             )}
@@ -176,9 +196,26 @@ function formatDuration(decimalHours: number): string {
           )}
 
           <a href={`/reservar?tour=${tour.id}`} class="btn orange-btn rounded-btn">Reservar esta ruta</a>
+        </div>
+      </section>
 
-          {tour.meeting_point_lat != null && tour.meeting_point_lng != null && (
-            <div class="tour-detail__map-wrap">
+        {tour.stops && tour.stops.length > 0 && (
+          <section class="tour-stops-map-section">
+            <div class="wrap">
+              <p class="eyebrow">Recorrido</p>
+              <h2 class="tour-stops-map-section__title">Mapa de la ruta</h2>
+              <div id="tour-stops-map" class="tour-stops-map"></div>
+              <p class="tour-detail__map-attribution">
+                Mapa de <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors
+              </p>
+            </div>
+          </section>
+        )}
+
+        {tour.meeting_point_lat != null && tour.meeting_point_lng != null && (
+          <section class="tour-detail__map-section">
+            <div class="wrap">
+              <p class="eyebrow">Encuentro</p>
               <h2 class="tour-detail__map-title">Punto de encuentro</h2>
               {tour.meeting_point && <p class="tour-detail__map-address">{tour.meeting_point}</p>}
               <div id="meeting-point-map" class="tour-detail__map"></div>
@@ -186,22 +223,8 @@ function formatDuration(decimalHours: number): string {
                 Mapa de <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors
               </p>
             </div>
-          )}
-        </div>
-      </section>
-
-      {tour.stops && tour.stops.length > 0 && (
-        <section class="tour-stops-map-section">
-          <div class="wrap">
-            <p class="eyebrow">Recorrido</p>
-            <h2 class="tour-stops-map-section__title">Mapa de la ruta</h2>
-            <div id="tour-stops-map" class="tour-stops-map"></div>
-            <p class="tour-detail__map-attribution">
-              Mapa de <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors
-            </p>
-          </div>
-        </section>
-      )}
+          </section>
+        )}
 
       <section class="tour-reviews">
         <div class="wrap">
@@ -382,9 +405,6 @@ function formatDuration(decimalHours: number): string {
     margin: 0 0 28px;
   }
 
-  .tour-detail__map-wrap {
-    margin-top: 44px;
-  }
   .tour-detail__map-title {
     font-family: var(--font-display);
     font-weight: 600;
@@ -410,6 +430,11 @@ function formatDuration(decimalHours: number): string {
     margin: 8px 0 0;
   }
   .tour-detail__map-attribution a { color: inherit; text-decoration: underline; }
+
+  .tour-detail__map-section {
+    background: var(--parchment);
+    padding-block: 0 70px;
+  }
 
   .tour-detail__gallery {
     display: grid;
