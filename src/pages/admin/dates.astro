@@ -145,6 +145,23 @@ const formatDate = (value: string) => {
                       ))}
                     </ul>
 
+                    <div class="generate-dates">
+                      <p class="quick-add__label">Generar fechas automáticamente</p>
+                      <div class="generate-dates__row">
+                        <div class="field">
+                          <label for="gen-date-from">Desde</label>
+                          <input type="date" id="gen-date-from" />
+                        </div>
+                        <div class="field">
+                          <label for="gen-date-to">Hasta</label>
+                          <input type="date" id="gen-date-to" />
+                        </div>
+                        <button type="button" class="btn orange-btn" id="generate-dates-btn">Generar</button>
+                      </div>
+                      <p class="generate-dates__hint">Se creará una fecha para cada día del rango (incluidos fines de semana).</p>
+                      <p class="panel__error is-hidden" id="generate-dates-error" role="alert"></p>
+                    </div>
+
                     <form id="add-date-form" class="add-schedule">
                       <div class="field add-schedule__field">
                         <label for="new-date">Añadir fecha disponible</label>
@@ -165,6 +182,9 @@ const formatDate = (value: string) => {
     <ConfirmDialog />
 
     <style is:global>
+      .generate-dates { margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px dashed rgba(24, 34, 25, 0.15); }
+      .generate-dates__row { display: flex; align-items: flex-end; gap: 14px; flex-wrap: wrap; margin-top: 4px; }
+      .generate-dates__hint { font-size: 0.8rem; color: #7a7562; margin: 8px 0 0; }
       .admin-top__nav {
         margin-left: auto;
         display: flex;
@@ -404,6 +424,93 @@ const formatDate = (value: string) => {
         banner.classList.toggle("admin__banner--error", isError);
         window.scrollTo({ top: 0, behavior: "smooth" });
       }
+
+      // Mostrar resumen tras recargar la página al terminar de generar fechas
+      const urlParams = new URLSearchParams(window.location.search);
+      const generatedCount = urlParams.get("generated");
+      if (generatedCount !== null) {
+        const failedCount = urlParams.get("generatedFailed");
+        const message = failedCount
+          ? `Se han creado ${generatedCount} fecha(s). ${failedCount} no se pudieron crear (puede que ya existieran).`
+          : `Se han creado ${generatedCount} fecha(s).`;
+        showBanner(message, !!failedCount);
+        urlParams.delete("generated");
+        urlParams.delete("generatedFailed");
+        const qs = urlParams.toString();
+        window.history.replaceState({}, "", `${window.location.pathname}${qs ? `?${qs}` : ""}`);
+      }
+
+      const genFromInput = document.getElementById("gen-date-from") as HTMLInputElement | null;
+      const genToInput = document.getElementById("gen-date-to") as HTMLInputElement | null;
+      const genBtn = document.getElementById("generate-dates-btn") as HTMLButtonElement | null;
+      const genError = document.getElementById("generate-dates-error") as HTMLParagraphElement | null;
+
+      genBtn?.addEventListener("click", async () => {
+        if (!datesCard || !genFromInput || !genToInput) return;
+        genError?.classList.add("is-hidden");
+
+        const tourId = datesCard.getAttribute("data-tour-id");
+        const from = genFromInput.value;
+        const to = genToInput.value;
+
+        if (!tourId || !from || !to) {
+          if (genError) {
+            genError.textContent = "Selecciona una fecha de inicio y una de fin.";
+            genError.classList.remove("is-hidden");
+          }
+          return;
+        }
+
+        const start = new Date(from + "T00:00:00");
+        const end = new Date(to + "T00:00:00");
+
+        if (start > end) {
+          if (genError) {
+            genError.textContent = "La fecha de inicio debe ser anterior (o igual) a la fecha de fin.";
+            genError.classList.remove("is-hidden");
+          }
+          return;
+        }
+
+        const dayMs = 24 * 60 * 60 * 1000;
+        const MAX_DAYS = 366; // límite de seguridad ante un rango escrito por error
+        const totalDays = Math.round((end.getTime() - start.getTime()) / dayMs) + 1;
+        if (totalDays > MAX_DAYS) {
+          if (genError) {
+            genError.textContent = `El rango es demasiado grande (${totalDays} días). Elige hasta ${MAX_DAYS} días.`;
+            genError.classList.remove("is-hidden");
+          }
+          return;
+        }
+
+        genBtn.disabled = true;
+        genBtn.textContent = "Generando…";
+
+        let created = 0;
+        let failed = 0;
+
+        for (let t = start.getTime(); t <= end.getTime(); t += dayMs) {
+          const iso = new Date(t).toISOString().slice(0, 10);
+          try {
+            const res = await fetch(`/api/admin/tours/${tourId}/dates`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ date: iso })
+            });
+            if (res.ok) created += 1;
+            else failed += 1;
+          } catch {
+            failed += 1;
+          }
+        }
+
+        const url = new URL(window.location.href);
+        url.searchParams.set("tour", tourId);
+        url.searchParams.set("generated", String(created));
+        if (failed > 0) url.searchParams.set("generatedFailed", String(failed));
+        else url.searchParams.delete("generatedFailed");
+        window.location.href = url.toString();
+      });
 
       tourPicker?.addEventListener("change", () => {
         const url = new URL(window.location.href);

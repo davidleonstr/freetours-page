@@ -142,6 +142,16 @@ const formatTime = (value: string) => value?.slice(0, 5) ?? value;
                       ))}
                     </ul>
 
+                    <div class="quick-add">
+                      <p class="quick-add__label">Horarios habituales</p>
+                      <div class="quick-add__buttons">
+                        <button type="button" class="btn quick-add__btn" data-quick-time="10:00">+ 10:00</button>
+                        <button type="button" class="btn quick-add__btn" data-quick-time="14:00">+ 14:00</button>
+                        <button type="button" class="btn quick-add__btn" data-quick-time="17:00">+ 17:00</button>
+                        <button type="button" class="btn orange-btn quick-add__btn" id="quick-add-all">Añadir los 3</button>
+                      </div>
+                    </div>
+
                     <form id="add-schedule-form" class="add-schedule">
                       <div class="field add-schedule__field">
                         <label for="new-time">Añadir hora de salida</label>
@@ -369,6 +379,26 @@ const formatTime = (value: string) => value?.slice(0, 5) ?? value;
       }
       .panel__error.is-hidden { display: none; }
 
+      .quick-add { margin-bottom: 20px; }
+      .quick-add__label {
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: #4a5b4c;
+        margin: 0 0 8px;
+      }
+      .quick-add__buttons { display: flex; gap: 10px; flex-wrap: wrap; }
+      .quick-add__btn {
+        background: var(--cream);
+        border: 1px solid rgba(24, 34, 25, 0.22);
+        color: var(--ink);
+        padding: 8px 16px;
+        font-size: 0.88rem;
+        border-radius: var(--radius);
+        cursor: pointer;
+      }
+      .quick-add__btn:hover { border-color: var(--gold); }
+      .quick-add__btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
       @media (max-width: 640px) {
         .admin-top__tag { display: none; }
         .admin__head { flex-direction: column; align-items: stretch; }
@@ -432,18 +462,10 @@ const formatTime = (value: string) => value?.slice(0, 5) ?? value;
         return li;
       }
 
-      addForm?.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        if (!scheduleCard || !newTimeInput || !addBtn) return;
-
-        addError?.classList.add("is-hidden");
-
+      async function addSchedule(time: string): Promise<{ ok: boolean; message?: string }> {
+        if (!scheduleCard) return { ok: false };
         const tourId = scheduleCard.getAttribute("data-tour-id");
-        const time = newTimeInput.value;
-        if (!tourId || !time) return;
-
-        addBtn.disabled = true;
-        addBtn.textContent = "Añadiendo…";
+        if (!tourId || !time) return { ok: false };
 
         try {
           const res = await fetch(`/api/admin/tours/${tourId}/schedules`, {
@@ -452,7 +474,7 @@ const formatTime = (value: string) => value?.slice(0, 5) ?? value;
             body: JSON.stringify({ time })
           });
           const data = await res.json();
-          if (!res.ok) throw new Error(data?.message || "No se ha podido añadir el horario.");
+          if (!res.ok) return { ok: false, message: data?.message || "No se ha podido añadir el horario." };
 
           scheduleList?.querySelector("#schedule-empty")?.remove();
           const row = scheduleRow(data);
@@ -463,52 +485,88 @@ const formatTime = (value: string) => value?.slice(0, 5) ?? value;
           } else {
             scheduleList?.appendChild(row);
           }
+          return { ok: true };
+        } catch (err: any) {
+          return { ok: false, message: err?.message };
+        }
+      }
 
+      addForm?.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        if (!newTimeInput || !addBtn) return;
+
+        addError?.classList.add("is-hidden");
+        const time = newTimeInput.value;
+        if (!time) return;
+
+        addBtn.disabled = true;
+        addBtn.textContent = "Añadiendo…";
+
+        const result = await addSchedule(time);
+
+        addBtn.disabled = false;
+        addBtn.textContent = "Añadir";
+
+        if (result.ok) {
           newTimeInput.value = "";
           showBanner("Horario añadido.");
-        } catch (err: any) {
-          if (addError) {
-            addError.textContent = err?.message || "No se ha podido añadir el horario.";
-            addError.classList.remove("is-hidden");
-          }
-        } finally {
-          addBtn.disabled = false;
-          addBtn.textContent = "Añadir";
+        } else if (addError) {
+          addError.textContent = result.message || "No se ha podido añadir el horario.";
+          addError.classList.remove("is-hidden");
         }
       });
 
-      scheduleList?.addEventListener("click", async (e) => {
-        const target = e.target as HTMLElement;
-        const scheduleId = target.getAttribute("data-delete-schedule");
-        if (!scheduleId || !scheduleCard) return;
+      function existingTimes(): string[] {
+        return [...(scheduleList?.querySelectorAll<HTMLSpanElement>(".schedule-list__time") ?? [])].map(
+          (el) => el.textContent ?? ""
+        );
+      }
 
-        const confirmed = await confirmDialog({
-          title: "Eliminar horario",
-          message: "¿Eliminar este horario? Esta acción no se puede deshacer.",
-          confirmLabel: "Eliminar"
-        });
-        if (!confirmed) return;
+      document.querySelectorAll<HTMLButtonElement>("[data-quick-time]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const time = btn.getAttribute("data-quick-time");
+          if (!time) return;
 
-        const tourId = scheduleCard.getAttribute("data-tour-id");
-        if (!tourId) return;
-
-        target.setAttribute("disabled", "true");
-        try {
-          const res = await fetch(`/api/admin/tours/${tourId}/schedules/${scheduleId}`, { method: "DELETE" });
-          const data = await res.json();
-          if (!res.ok) throw new Error(data?.message || "No se ha podido eliminar el horario.");
-
-          const row = scheduleList?.querySelector(`li[data-schedule-id="${scheduleId}"]`);
-          row?.remove();
-          if (!scheduleList?.querySelector(".schedule-list__item")) {
-            scheduleList?.appendChild(emptyStateRow());
+          if (existingTimes().includes(time)) {
+            showBanner(`Ya existe un horario a las ${time}.`, true);
+            return;
           }
-          showBanner("Horario eliminado.");
-        } catch (err: any) {
-          showBanner(err?.message || "No se ha podido eliminar el horario. Puede que ya tenga reservas asociadas.", true);
-        } finally {
-          target.removeAttribute("disabled");
+
+          btn.disabled = true;
+          const result = await addSchedule(time);
+          btn.disabled = false;
+
+          showBanner(result.ok ? `Horario ${time} añadido.` : (result.message || "No se ha podido añadir el horario."), !result.ok);
+        });
+      });
+
+      document.getElementById("quick-add-all")?.addEventListener("click", async (e) => {
+        const btn = e.currentTarget as HTMLButtonElement;
+        const presets = ["10:00", "14:00", "17:00"];
+        const already = existingTimes();
+        const toAdd = presets.filter((t) => !already.includes(t));
+
+        if (toAdd.length === 0) {
+          showBanner("Los 3 horarios habituales ya existen.");
+          return;
         }
+
+        btn.disabled = true;
+        let added = 0;
+        let failed = 0;
+        for (const time of toAdd) {
+          const result = await addSchedule(time);
+          if (result.ok) added += 1;
+          else failed += 1;
+        }
+        btn.disabled = false;
+
+        showBanner(
+          failed > 0
+            ? `Se añadieron ${added} horario(s). ${failed} no se pudieron añadir.`
+            : `Se añadieron ${added} horario(s).`,
+          failed > 0
+        );
       });
     </script>
   </body>
