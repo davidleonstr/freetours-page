@@ -97,15 +97,17 @@ function splitCaption(text: string): { title: string | null; body: string | null
 // same convention used to compose booking-ticket copy elsewhere. Numbered
 // 1, 2, 3… in gallery order, mirroring the waypoint layout used in the
 // "arrival guide" post.
-const routeStops = (tour.gallery ?? []).map((img: any, index: number) => {
-  const parts = img.alt ? splitCaption(img.alt) : null;
-  return {
-    number: index + 1,
-    image: img,
-    title: parts?.title ?? null,
-    body: parts?.body ?? (parts ? null : img.alt ?? null)
-  };
-});
+const routeStops = (tour.gallery ?? [])
+  .filter((img: any) => img.position !== 0)
+  .map((img: any, index: number) => {
+    const parts = img.alt ? splitCaption(img.alt) : null;
+    return {
+      number: index + 1,
+      image: img,
+      title: parts?.title ?? null,
+      body: parts?.body ?? (parts ? null : img.alt ?? null)
+    };
+  });
 
 // --- UPDATED: Helper that builds a "de X a Y" duration range ---
 function formatTimeParts(hours: number, minutes: number) {
