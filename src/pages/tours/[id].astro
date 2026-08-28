@@ -171,6 +171,17 @@ function formatDuration(hoursFloat: number | null) {
             )}
           </div>
 
+          {tour.meeting_point_lat != null && tour.meeting_point_lng != null && (
+            <section class="tour-detail__map-section">
+              <h2 class="tour-detail__map-title">Punto de encuentro</h2>
+              {tour.meeting_point && <p class="tour-detail__map-address">{tour.meeting_point}</p>}
+              <div id="meeting-point-map" class="tour-detail__map"></div>
+              <p class="tour-detail__map-attribution">
+                Mapa de <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors
+              </p>
+            </section>
+          )}
+
           {routeStops.length > 0 && (
             <div class="tour-route-section">
               <h2 class="tour-route-section__title">¿Qué veremos durante el tour?</h2>
@@ -202,23 +213,8 @@ function formatDuration(hoursFloat: number | null) {
         {tour.stops && tour.stops.length > 0 && (
           <section class="tour-stops-map-section">
             <div class="wrap">
-              <p class="eyebrow">Recorrido</p>
               <h2 class="tour-stops-map-section__title">Mapa de la ruta</h2>
               <div id="tour-stops-map" class="tour-stops-map"></div>
-              <p class="tour-detail__map-attribution">
-                Mapa de <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors
-              </p>
-            </div>
-          </section>
-        )}
-
-        {tour.meeting_point_lat != null && tour.meeting_point_lng != null && (
-          <section class="tour-detail__map-section">
-            <div class="wrap">
-              <p class="eyebrow">Encuentro</p>
-              <h2 class="tour-detail__map-title">Punto de encuentro</h2>
-              {tour.meeting_point && <p class="tour-detail__map-address">{tour.meeting_point}</p>}
-              <div id="meeting-point-map" class="tour-detail__map"></div>
               <p class="tour-detail__map-attribution">
                 Mapa de <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors
               </p>
@@ -433,7 +429,7 @@ function formatDuration(hoursFloat: number | null) {
 
   .tour-detail__map-section {
     background: var(--parchment);
-    padding-block: 0 70px;
+    margin-block: 8px 40px;
   }
 
   .tour-detail__gallery {
