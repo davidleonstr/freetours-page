@@ -140,7 +140,7 @@ const partySummary = [
 
           <p class="admin__banner is-hidden" id="reserva-banner" role="status"></p>
 
-          <div class="reserva-card" id="reserva-card" data-reserva-id={booking.id}>
+          <div class="reserva-card" id="reserva-card" data-reserva-id={booking.id} data-can-modify={canModify ? "true" : "false"}>
             <div class="reserva-card__row">
               {booking.status === 'cancelled' && (
                 <>
@@ -486,31 +486,35 @@ const partySummary = [
   }
 </style>
 
-<script define:vars={{ bookingId: booking.id, canModify }}>
+<script>
   import { initConfirmDialog, confirmDialog } from "@/lib/confirmDialog.js";
 
   initConfirmDialog();
 
+  const reservaCard = document.getElementById("reserva-card");
+  const bookingId = reservaCard?.getAttribute("data-reserva-id");
+  const canModify = reservaCard?.getAttribute("data-can-modify") === "true";
+
   const banner = document.getElementById("reserva-banner");
-  const editBtn = document.getElementById("edit-reserva-btn");
-  const cancelBtn = document.getElementById("cancel-reserva-btn");
-  const cancelEditBtn = document.getElementById("cancel-edit-btn");
-  const editForm = document.getElementById("edit-reserva-form");
+  const editBtn = document.getElementById("edit-reserva-btn") as HTMLButtonElement | null;
+  const cancelBtn = document.getElementById("cancel-reserva-btn") as HTMLButtonElement | null;
+  const cancelEditBtn = document.getElementById("cancel-edit-btn") as HTMLButtonElement | null;
+  const editForm = document.getElementById("edit-reserva-form") as HTMLFormElement | null;
   const editError = document.getElementById("edit-reserva-error");
-  const saveBtn = document.getElementById("save-reserva-btn");
+  const saveBtn = document.getElementById("save-reserva-btn") as HTMLButtonElement | null;
   const actions = document.querySelector(".reserva-actions");
   const partyDisplay = document.getElementById("reserva-party-display");
   const dateDisplay = document.getElementById("reserva-date-display");
   const timeDisplay = document.getElementById("reserva-time-display");
-  const dateSelect = document.getElementById("edit-date");
-  const scheduleSelect = document.getElementById("edit-schedule");
-  const quantityInput = document.getElementById("edit-quantity");
-  const childrenInput = document.getElementById("edit-children");
-  const babiesInput = document.getElementById("edit-babies");
-  const petsInput = document.getElementById("edit-pets");
+  const dateSelect = document.getElementById("edit-date") as HTMLSelectElement | null;
+  const scheduleSelect = document.getElementById("edit-schedule") as HTMLSelectElement | null;
+  const quantityInput = document.getElementById("edit-quantity") as HTMLInputElement | null;
+  const childrenInput = document.getElementById("edit-children") as HTMLInputElement | null;
+  const babiesInput = document.getElementById("edit-babies") as HTMLInputElement | null;
+  const petsInput = document.getElementById("edit-pets") as HTMLInputElement | null;
   const statusPill = document.getElementById("status-pill");
 
-  function showBanner(message, isError = false) {
+  function showBanner(message: string, isError = false) {
     if (!banner) return;
     banner.textContent = message;
     banner.classList.remove("is-hidden");
@@ -518,7 +522,7 @@ const partySummary = [
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function partySummary(quantity, children, babies, pets) {
+  function partySummary(quantity: number, children: number, babies: number, pets: number) {
     const parts = [`${quantity} adulto${quantity === 1 ? "" : "s"}`];
     if (children) parts.push(`${children} niño${children === 1 ? "" : "s"}`);
     if (babies) parts.push(`${babies} bebé${babies === 1 ? "" : "s"}`);
@@ -545,10 +549,10 @@ const partySummary = [
     saveBtn.disabled = true;
     saveBtn.textContent = "Guardando…";
 
-    const quantity = Number(quantityInput.value);
-    const numberOfChildren = Number(childrenInput.value || 0);
-    const numberOfBabies = Number(babiesInput.value || 0);
-    const numberOfPets = Number(petsInput.value || 0);
+    const quantity = Number(quantityInput?.value);
+    const numberOfChildren = Number(childrenInput?.value || 0);
+    const numberOfBabies = Number(babiesInput?.value || 0);
+    const numberOfPets = Number(petsInput?.value || 0);
 
     const payload = {
       quantity,
@@ -576,7 +580,7 @@ const partySummary = [
           year: "numeric"
         });
       }
-      if (timeDisplay && dateSelect) {
+      if (dateDisplay && dateSelect) {
         const selectedOption = dateSelect.options[dateSelect.selectedIndex];
         if (selectedOption) dateDisplay.textContent = selectedOption.textContent;
       }
@@ -585,10 +589,10 @@ const partySummary = [
         if (selectedTime) timeDisplay.textContent = selectedTime.textContent;
       }
 
-      editForm.classList.add("is-hidden");
+      editForm?.classList.add("is-hidden");
       actions?.classList.remove("is-hidden");
       showBanner("Reserva actualizada correctamente. Te hemos enviado un ticket actualizado por email.");
-    } catch (err) {
+    } catch (err: any) {
       if (editError) {
         editError.textContent = err?.message || "No se ha podido actualizar la reserva.";
         editError.classList.remove("is-hidden");
@@ -620,7 +624,7 @@ const partySummary = [
       actions?.remove();
       editForm?.remove();
       showBanner("Reserva cancelada. Te hemos enviado la confirmación por email.");
-    } catch (err) {
+    } catch (err: any) {
       showBanner(err?.message || "No se ha podido cancelar la reserva.", true);
       cancelBtn?.removeAttribute("disabled");
     }
