@@ -673,11 +673,13 @@ if (tourId) {
           
           const coordsText = row.querySelector(".admin__cell-coords")?.textContent ?? "0, 0";
           const [lat, lng] = coordsText.split(",").map((v) => Number(v.trim()));
-          
+
+          const descText = row.querySelector(".admin__cell-desc")?.textContent?.trim() ?? "";
+
           knownStops.push({
             id,
             name: row.querySelector(".admin__tour-name")?.textContent ?? "",
-            description: null,
+            description: descText && descText !== "—" ? descText : null,
             lat,
             lng,
             position: knownStops.length
