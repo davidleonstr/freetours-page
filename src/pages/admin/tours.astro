@@ -18,6 +18,16 @@ interface ApiTour {
 let tours: ApiTour[] = [];
 let loadError: string | null = null;
 
+function formatDuration(hours: number | null): string {
+  if (!hours) return "—";
+  const totalMinutes = Math.round(hours * 60);
+  const h = Math.floor(totalMinutes / 60);
+  const m = totalMinutes % 60;
+  if (h === 0) return `${m} min`;
+  if (m === 0) return `${h} ${h === 1 ? "hora" : "horas"}`;
+  return `${h} ${h === 1 ? "hora" : "horas"} con ${m} min`;
+}
+
 try {
   tours = await listAllTours();
 } catch (err) {
@@ -96,7 +106,7 @@ try {
                   <td class="admin__cell-name">
                     <span class="admin__tour-name">{t.name}</span>
                   </td>
-                  <td>{t.duration_hours ? `${t.duration_hours} h` : "—"}</td>
+                  <td>{formatDuration(t.duration_hours)}</td>
                   <td>{t.capacity ?? "—"}</td>
                   <td>
                     <span class={`admin__status admin__status--${t.is_active ? "active" : "archived"}`}>
@@ -175,13 +185,18 @@ try {
 
           <div class="field-row">
             <div class="field">
-              <label for="f-duration">Duración (horas)</label>
-              <input type="number" id="f-duration" min="0.25" step="0.25" placeholder="p. ej. 2.5" />
+              <label for="f-duration-hours">Duración — horas</label>
+              <input type="number" id="f-duration-hours" min="0" step="1" placeholder="p. ej. 2" />
             </div>
             <div class="field">
-              <label for="f-capacity">Aforo máximo</label>
-              <input type="number" id="f-capacity" min="1" step="1" />
+              <label for="f-duration-minutes">Duración — minutos</label>
+              <input type="number" id="f-duration-minutes" min="0" max="59" step="1" placeholder="p. ej. 30" />
             </div>
+          </div>
+
+          <div class="field">
+            <label for="f-capacity">Aforo máximo</label>
+            <input type="number" id="f-capacity" min="1" step="1" />
           </div>
 
           <div class="field">
@@ -559,7 +574,8 @@ try {
       const lngField = document.getElementById("f-meeting-lng") as HTMLInputElement;
       const searchInput = document.getElementById("f-meeting-search") as HTMLInputElement;
       const searchBtn = document.getElementById("f-meeting-search-btn") as HTMLButtonElement;
-      const durationField = document.getElementById("f-duration") as HTMLInputElement;
+      const durationHoursField = document.getElementById("f-duration-hours") as HTMLInputElement;
+      const durationMinutesField = document.getElementById("f-duration-minutes") as HTMLInputElement;
       const capacityField = document.getElementById("f-capacity") as HTMLInputElement;
       const activeField = document.getElementById("f-active") as HTMLInputElement;
       const imageField = document.getElementById("f-image") as HTMLInputElement;
@@ -568,6 +584,16 @@ try {
       const coverPreviewImg = document.getElementById("cover-preview-img") as HTMLImageElement;
 
       let knownTours = new Map<string, Tour>();
+
+      function formatDuration(hours: number | null): string {
+        if (!hours) return "—";
+        const totalMinutes = Math.round(hours * 60);
+        const h = Math.floor(totalMinutes / 60);
+        const m = totalMinutes % 60;
+        if (h === 0) return `${m} min`;
+        if (m === 0) return `${h} ${h === 1 ? "hora" : "horas"}`;
+        return `${h} ${h === 1 ? "hora" : "horas"} con ${m} min`;
+      }
 
       // ---------- OpenStreetMap (Leaflet) meeting-point picker ----------
       let map: any = null;
@@ -650,7 +676,7 @@ try {
       function rowHtml(t: Tour) {
         return `
           <td class="admin__cell-name"><span class="admin__tour-name">${escapeHtml(t.name)}</span></td>
-          <td>${t.duration_hours ? `${t.duration_hours} h` : "—"}</td>
+          <td>${formatDuration(t.duration_hours)}</td>
           <td>${t.capacity ?? "—"}</td>
           <td><span class="admin__status admin__status--${t.is_active ? "active" : "archived"}">${
             t.is_active ? "Activa" : "Archivada"
@@ -733,7 +759,16 @@ try {
           idField.value = tour.id;
           nameField.value = tour.name;
           descField.value = tour.description;
-          durationField.value = tour.duration_hours ? String(tour.duration_hours) : "";
+
+          if (tour.duration_hours) {
+            const totalMinutes = Math.round(tour.duration_hours * 60);
+            durationHoursField.value = String(Math.floor(totalMinutes / 60));
+            durationMinutesField.value = String(totalMinutes % 60);
+          } else {
+            durationHoursField.value = "";
+            durationMinutesField.value = "";
+          }
+
           capacityField.value = tour.capacity ? String(tour.capacity) : "";
           activeField.checked = tour.is_active;
 
@@ -755,6 +790,8 @@ try {
         } else {
           panelTitle.textContent = "Nueva excursión";
           idField.value = "";
+          durationHoursField.value = "";
+          durationMinutesField.value = "";
           activeField.checked = true;
           addressField.value = "";
           clearMarker();
@@ -851,6 +888,14 @@ try {
 
         try {
           const isEditing = Boolean(idField.value);
+
+          const durationHours = (() => {
+            const h = durationHoursField.value ? Number(durationHoursField.value) : 0;
+            const m = durationMinutesField.value ? Number(durationMinutesField.value) : 0;
+            if (!h && !m) return undefined;
+            return Math.round((h + m / 60) * 100) / 100;
+          })();
+
           const payload: Record<string, unknown> = {
             name: nameField.value.trim(),
             description: descField.value.trim(),
@@ -859,7 +904,7 @@ try {
               lat: Number(latField.value),
               lng: Number(lngField.value)
             },
-            durationHours: durationField.value ? Number(durationField.value) : undefined,
+            durationHours,
             capacity: capacityField.value ? Number(capacityField.value) : undefined,
             isActive: activeField.checked
           };
