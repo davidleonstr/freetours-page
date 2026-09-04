@@ -1,6 +1,12 @@
 ---
-import { getTourGallery, getTours, getRandomReviews } from "@/lib/api.js";
+import { getTourGallery, getTours, getRandomReviews, getCurrentCustomer, ApiError } from "@/lib/api.js";
 import ReviewCard from "@/components/ReviewCard.astro";
+import { getSessionToken, clearSessionCookie } from "@/lib/session.js";
+
+// NOTE: this component now reads the session cookie to know whether to show
+// the review form, so the *page* that renders it must not be statically
+// prerendered (same requirement as Booking.astro / the tour detail page).
+// If it isn't already, add `export const prerender = false;` to that page.
 
 interface ApiTour {
   id: string;
@@ -24,6 +30,12 @@ interface ApiReview {
   created_at: string;
   tour_name: string;
   customer_name: string;
+}
+
+interface CurrentCustomer {
+  id: string;
+  full_name: string;
+  email: string;
 }
 
 let tours: TourWithCover[] = [];
@@ -61,15 +73,31 @@ try {
   reviewsError = true;
 }
 
+// Resolve the logged-in customer (if any) from the session cookie — same
+// pattern as Booking.astro / the tour detail page — so we know whether to
+// show the review form here too. Because this reviews block spans every
+// tour (not just one), the visitor picks which tour they're reviewing via
+// a select; "you already reviewed this tour" is still enforced by the API
+// when the form is submitted, exactly like on the tour detail page.
+let currentCustomer: CurrentCustomer | null = null;
+const sessionToken = getSessionToken(Astro.cookies);
+if (sessionToken) {
+  try {
+    currentCustomer = await getCurrentCustomer(sessionToken);
+  } catch {
+    clearSessionCookie(Astro.cookies);
+  }
+}
+
 // --- UPDATED: Helper that builds a "de X a Y" duration range ---
-function formatTimeParts(hours: number, minutes: number) {
-  const parts = [];
+function formatTimeParts(hours: number, minutes: number): string {
+  const parts: string[] = [];
   if (hours > 0) parts.push(hours === 1 ? "1 hora" : `${hours} horas`);
   if (minutes > 0) parts.push(`${minutes} minutos`);
   return parts.join(" y ");
 }
 
-function formatDuration(hoursFloat: number | null) {
+function formatDuration(hoursFloat: number | null): string {
   if (!hoursFloat) return "Duración flexible";
 
   const startHours = Math.floor(hoursFloat);
@@ -122,7 +150,7 @@ function formatDuration(hoursFloat: number | null) {
           <div class="card__overlay">
             <h3 class="card__name">{t.name}</h3>
             <p class="card__desc">{t.description}</p>
-            
+
             {/* --- UPDATED: Using the formatDuration helper --- */}
             <p class="card__meta">
               {formatDuration(t.duration_hours)}
@@ -147,8 +175,40 @@ function formatDuration(hoursFloat: number | null) {
         </p>
       )}
 
+      {!reviewsError && !loadError && currentCustomer && tours.length > 0 && (
+        <div class="review-form-card" id="review-form-card">
+          <h3 class="review-form-card__title">Deja tu reseña</h3>
+          <form id="review-form" novalidate>
+            <div class="field">
+              <label for="review-tour">Ruta<em>*</em></label>
+              <select id="review-tour" name="tour_id" required>
+                <option value="" selected disabled>Elige la ruta que quieres reseñar…</option>
+                {tours.map((t) => (
+                  <option value={t.id}>{t.name}</option>
+                ))}
+              </select>
+            </div>
+            <div class="field">
+              <label id="star-picker-label">Puntuación<em>*</em></label>
+              <div class="star-picker" id="star-picker" role="radiogroup" aria-labelledby="star-picker-label">
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <button type="button" class="star-picker__star" data-star={n} aria-label={`${n} estrellas`}>★</button>
+                ))}
+              </div>
+              <input type="hidden" id="review-stars" name="stars" />
+            </div>
+            <div class="field">
+              <label for="review-content">Comentario <span class="field__optional">(opcional)</span></label>
+              <textarea id="review-content" name="content" rows="4" maxlength="5000"></textarea>
+            </div>
+            <p class="review-form-error is-hidden" id="review-form-error" role="alert"></p>
+            <button type="submit" class="btn orange-btn" id="review-submit">Publicar reseña</button>
+          </form>
+        </div>
+      )}
+
       {!reviewsError && reviews.length === 0 && (
-        <p class="tours__notice">Todavía no hay reseñas publicadas.</p>
+        <p class="tours__notice" id="reviews-empty-notice">Todavía no hay reseñas publicadas.</p>
       )}
 
       <div class="tours__grid" id="reviews">
@@ -165,7 +225,7 @@ function formatDuration(hoursFloat: number | null) {
   </div>
 </section>
 
-<style>
+<style is:global>
   .tours {
     background: var(--parchment);
     padding-block: 90px 100px;
@@ -312,7 +372,7 @@ function formatDuration(hoursFloat: number | null) {
     flex: 1;
     overflow-y: auto;
     padding-right: 8px;
-    
+
     scrollbar-width: thin;
     scrollbar-color: rgba(0,0,0,0.15) transparent;
   }
@@ -328,7 +388,7 @@ function formatDuration(hoursFloat: number | null) {
     font-size: 0.92rem;
     color: var(--russet);
     margin: 0 0 16px;
-    padding-top: 10px; 
+    padding-top: 10px;
   }
 
   .card__actions {
@@ -337,7 +397,117 @@ function formatDuration(hoursFloat: number | null) {
     gap: 10px;
     flex-wrap: wrap;
     padding-top: 16px;
-    border-top: 1px solid rgba(0, 0, 0, 0.08); 
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
+  }
+
+  /* ---------- Review form (with tour picker) ---------- */
+  .review-form-card {
+    background: var(--cream);
+    border: 1px solid rgba(24, 34, 25, 0.1);
+    border-top: 3px solid var(--gold);
+    border-radius: var(--radius);
+    padding: 26px 26px 28px;
+    margin: 0 0 32px;
+    max-width: 560px;
+  }
+  .review-form-card__title {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: var(--ink);
+    margin: 0 0 18px;
+  }
+  .review-form-card .field { margin-bottom: 16px; }
+  .review-form-card label {
+    display: block;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #4a5b4c;
+    margin-bottom: 8px;
+  }
+  .review-form-card label em { font-style: normal; color: var(--russet); margin-left: 2px; }
+  .field__optional { font-weight: 400; color: #8a8272; }
+
+  .review-form-card select {
+    width: 100%;
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    color: var(--ink);
+    background: var(--cream);
+    border: 1px solid rgba(24, 34, 25, 0.22);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+  }
+  .review-form-card select:focus {
+    outline: none;
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px rgba(233, 151, 10, 0.16);
+  }
+
+  .star-picker { display: flex; gap: 6px; }
+  .star-picker__star {
+    background: none;
+    border: none;
+    font-size: 1.6rem;
+    line-height: 1;
+    color: rgba(24, 34, 25, 0.22);
+    cursor: pointer;
+    padding: 2px;
+    transition: color 0.15s ease, transform 0.15s ease;
+  }
+  .star-picker__star:hover { transform: translateY(-1px); }
+  .star-picker__star.is-filled { color: var(--gold); }
+
+  .review-form-card textarea {
+    width: 100%;
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    color: var(--ink);
+    background: var(--cream);
+    border: 1px solid rgba(24, 34, 25, 0.22);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    resize: vertical;
+  }
+  .review-form-card textarea:focus {
+    outline: none;
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px rgba(233, 151, 10, 0.16);
+  }
+
+  .review-form-error {
+    font-size: 0.85rem;
+    color: #7a2e1f;
+    background: rgba(158, 73, 54, 0.1);
+    border-left: 3px solid var(--russet);
+    padding: 10px 14px;
+    border-radius: var(--radius);
+    margin: 0 0 16px;
+  }
+  .review-form-error.is-hidden { display: none; }
+
+  .review-cta {
+    background: var(--cream);
+    border: 1px dashed rgba(24, 34, 25, 0.18);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    font-size: 0.92rem;
+    color: #4a5b4c;
+    margin: 0 0 32px;
+    max-width: 560px;
+  }
+  .review-cta--done {
+    background: rgba(72, 122, 74, 0.1);
+    border-color: rgba(72, 122, 74, 0.3);
+    color: #2e5c30;
+  }
+
+  /* Tour name badge on reviews created dynamically from this form (mirrors
+     whatever tour_name styling ReviewCard already renders server-side) */
+  .review-card__tour {
+    font-size: 0.78rem;
+    color: #8a8272;
+    margin: 2px 0 0;
   }
 
   @media (max-width: 940px) {
@@ -358,9 +528,9 @@ function formatDuration(hoursFloat: number | null) {
 </style>
 
 <script>
-  const items = document.querySelectorAll('.reveal');
+  const items = document.querySelectorAll<HTMLElement>('.reveal');
   const io = new IntersectionObserver(
-    (entries) => {
+    (entries: IntersectionObserverEntry[]) => {
       entries.forEach((entry) => {
         if (entry.isIntersecting) {
           entry.target.classList.add('is-visible');
@@ -371,4 +541,150 @@ function formatDuration(hoursFloat: number | null) {
     { threshold: 0.15 }
   );
   items.forEach((el) => io.observe(el));
+</script>
+
+<script>
+  // Review form that lets the visitor pick which tour they're reviewing —
+  // same submit flow / same-server validation as the per-tour review form
+  // on the tour detail page, just with an added tour_id select.
+  const form = document.getElementById('review-form') as HTMLFormElement | null;
+
+  if (form) {
+    const tourSelect = document.getElementById('review-tour') as HTMLSelectElement;
+    const starPicker = document.getElementById('star-picker') as HTMLDivElement;
+    const starsInput = document.getElementById('review-stars') as HTMLInputElement;
+    const contentInput = document.getElementById('review-content') as HTMLTextAreaElement;
+    const errorEl = document.getElementById('review-form-error') as HTMLParagraphElement;
+    const submitBtn = document.getElementById('review-submit') as HTMLButtonElement;
+    const formCard = document.getElementById('review-form-card') as HTMLDivElement;
+
+    let selectedStars: number = 0;
+
+    function paintStars(count: number): void {
+      starPicker.querySelectorAll('.star-picker__star').forEach((btn) => {
+        const button = btn as HTMLButtonElement;
+        const n = Number(button.dataset.star);
+        button.classList.toggle('is-filled', n <= count);
+      });
+    }
+
+    starPicker?.addEventListener('click', (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const btn = target.closest('.star-picker__star') as HTMLButtonElement | null;
+      if (!btn) return;
+      selectedStars = Number(btn.dataset.star);
+      starsInput.value = String(selectedStars);
+      paintStars(selectedStars);
+    });
+
+    starPicker?.addEventListener('mouseover', (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const btn = target.closest('.star-picker__star') as HTMLButtonElement | null;
+      if (!btn) return;
+      paintStars(Number(btn.dataset.star));
+    });
+    
+    starPicker?.addEventListener('mouseleave', () => paintStars(selectedStars));
+
+    function showError(message: string): void {
+      errorEl.textContent = message;
+      errorEl.classList.remove('is-hidden');
+    }
+    
+    function clearError(): void {
+      errorEl.textContent = '';
+      errorEl.classList.add('is-hidden');
+    }
+    
+    function escapeHtml(value: string | null | undefined): string {
+      const div = document.createElement('div');
+      div.textContent = value ?? '';
+      return div.innerHTML;
+    }
+
+    function starsSvg(count: number): string {
+      let out = '';
+      for (let i = 0; i < 5; i++) {
+        const filled = i < count;
+        out += `<svg viewBox="0 0 20 20" width="13" height="13" fill="${filled ? 'var(--gold)' : 'none'}" stroke="var(--gold)" stroke-width="${filled ? '0' : '1.4'}"><path d="M10 1.5l2.6 5.6 6.1.6-4.6 4.1 1.3 6-5.4-3.1-5.4 3.1 1.3-6-4.6-4.1 6.1-.6L10 1.5Z"/></svg>`;
+      }
+      return out;
+    }
+
+    interface CreatedReview {
+      content?: string | null;
+      stars: number;
+      customer_name: string;
+    }
+
+    function buildReviewCard(review: CreatedReview, tourName: string): HTMLDivElement {
+      const div = document.createElement('div');
+      div.className = 'review-card';
+      const quoteHtml = review.content
+        ? `<p class="review-card__quote">&ldquo;${escapeHtml(review.content)}&rdquo;</p>`
+        : '';
+      const tourHtml = tourName
+        ? `<p class="review-card__tour">${escapeHtml(tourName)}</p>`
+        : '';
+      div.innerHTML = `
+        <div class="review-card__stars" aria-label="${review.stars} de 5 estrellas">${starsSvg(review.stars)}</div>
+        ${quoteHtml}
+        <p class="review-card__reviewer">${escapeHtml(review.customer_name)}</p>
+        ${tourHtml}
+      `;
+      return div;
+    }
+
+    form.addEventListener('submit', async (e: SubmitEvent) => {
+      e.preventDefault();
+      clearError();
+
+      const tourId = tourSelect.value;
+      if (!tourId) {
+        showError('Elige la ruta que quieres reseñar.');
+        return;
+      }
+      if (!selectedStars) {
+        showError('Selecciona una puntuación.');
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Publicando…';
+
+      try {
+        const res = await fetch(`/api/tours/${tourId}/reviews`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            stars: selectedStars,
+            content: contentInput.value.trim() || undefined
+          })
+        });
+        
+        const data = await res.json();
+        
+        // The API is the source of truth for "already reviewed this tour" —
+        // same one-review-per-tour rule as on the tour detail page — so a
+        // duplicate attempt surfaces here as a normal form error instead of
+        // being pre-checked client-side.
+        if (!res.ok) throw new Error(data?.message || 'No se ha podido publicar la reseña.');
+
+        const tourName = tourSelect.options[tourSelect.selectedIndex]?.textContent ?? '';
+
+        document.getElementById('reviews-empty-notice')?.remove();
+        const grid = document.getElementById('reviews');
+        if (grid) {
+          grid.prepend(buildReviewCard(data, tourName));
+        }
+
+        formCard.outerHTML =
+          '<div class="review-cta review-cta--done"><p>¡Gracias! Tu reseña se ha publicado.</p></div>';
+      } catch (err: any) {
+        showError(err?.message || 'No se ha podido publicar la reseña.');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Publicar reseña';
+      }
+    });
+  }
 </script>
