@@ -157,7 +157,7 @@ function formatDuration(hoursFloat: number | null): string {
             </p>
 
             <div class="card__actions">
-              <a href={`/tours/${t.id}`}><button class="btn btn-ghost black-color-05">VER RUTA</button></a>
+              <a href={`/tours/${t.id}`}><button class="btn btn-ghost">VER RUTA</button></a>
               <a href={`/reservar?tour=${t.id}`}><button class="btn orange-btn">RESERVAR</button></a>
             </div>
           </div>
@@ -242,11 +242,7 @@ function formatDuration(hoursFloat: number | null): string {
     margin: 10px 0 44px;
     color: var(--ink);
   }
-
-  .black-color-05 {
-    color: rgba(0, 0, 0, 0.5);
-  }
-
+  
   .tours__notice {
     font-size: 0.95rem;
     color: #5a6b5c;
