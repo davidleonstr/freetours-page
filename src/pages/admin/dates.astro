@@ -50,6 +50,51 @@ const formatDate = (value: string) => {
   const datePart = value.includes("T") ? value.split("T")[0] : value;
   return new Date(datePart + "T00:00:00").toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" });
 };
+
+// --- Agrupar fechas por año y luego por mes, para no tener un scroll gigante ---
+interface MonthGroup {
+  key: string; // "YYYY-MM"
+  label: string;
+  dates: ApiDate[];
+}
+interface YearGroup {
+  year: string;
+  months: MonthGroup[];
+}
+
+function groupDatesByYearMonth(list: ApiDate[]): YearGroup[] {
+  const yearMap = new Map<string, Map<string, ApiDate[]>>();
+
+  for (const d of list) {
+    const datePart = d.date.includes("T") ? d.date.split("T")[0] : d.date;
+    const [year, month] = datePart.split("-");
+    const monthKey = `${year}-${month}`;
+    if (!yearMap.has(year)) yearMap.set(year, new Map());
+    const monthMap = yearMap.get(year)!;
+    if (!monthMap.has(monthKey)) monthMap.set(monthKey, []);
+    monthMap.get(monthKey)!.push(d);
+  }
+
+  const monthFormatter = new Intl.DateTimeFormat("es-ES", { month: "long" });
+  const years = [...yearMap.keys()].sort();
+
+  return years.map((year) => {
+    const monthMap = yearMap.get(year)!;
+    const monthKeys = [...monthMap.keys()].sort();
+    const months = monthKeys.map((monthKey) => {
+      const monthNum = Number(monthKey.split("-")[1]);
+      const rawLabel = monthFormatter.format(new Date(Number(year), monthNum - 1, 1));
+      return {
+        key: monthKey,
+        label: rawLabel.charAt(0).toUpperCase() + rawLabel.slice(1),
+        dates: monthMap.get(monthKey)!
+      };
+    });
+    return { year, months };
+  });
+}
+
+const dateGroups = groupDatesByYearMonth(dates);
 ---
 
 <!doctype html>
@@ -129,21 +174,41 @@ const formatDate = (value: string) => {
 
                 {!dateError && (
                   <>
-                    <ul class="schedule-list" id="date-list">
+                    <div class="date-groups" id="date-list">
                       {dates.length === 0 && (
-                        <li class="schedule-list__empty" id="date-empty">
+                        <p class="schedule-list__empty" id="date-empty">
                           Todavía no hay fechas para esta ruta.
-                        </li>
+                        </p>
                       )}
-                      {dates.map((d) => (
-                        <li class="schedule-list__item" data-date-id={d.id}>
-                          <span class="schedule-list__time">{formatDate(d.date)}</span>
-                          <button type="button" class="admin__link-btn admin__link-btn--danger" data-delete-date={d.id}>
-                            Eliminar
-                          </button>
-                        </li>
+                      {dateGroups.map((group, gi) => (
+                        <details class="year-group" data-year={group.year} open={gi === 0}>
+                          <summary class="year-group__summary">
+                            {group.year}
+                            <span class="group-count">({group.months.reduce((n, m) => n + m.dates.length, 0)})</span>
+                          </summary>
+                          <div class="year-group__months">
+                            {group.months.map((month, mi) => (
+                              <details class="month-group" data-year-month={month.key} open={gi === 0 && mi === 0}>
+                                <summary class="month-group__summary">
+                                  {month.label}
+                                  <span class="group-count">({month.dates.length})</span>
+                                </summary>
+                                <ul class="schedule-list">
+                                  {month.dates.map((d) => (
+                                    <li class="schedule-list__item" data-date-id={d.id} data-date={d.date.includes("T") ? d.date.split("T")[0] : d.date}>
+                                      <span class="schedule-list__time">{formatDate(d.date)}</span>
+                                      <button type="button" class="admin__link-btn admin__link-btn--danger" data-delete-date={d.id}>
+                                        Eliminar
+                                      </button>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </details>
+                            ))}
+                          </div>
+                        </details>
                       ))}
-                    </ul>
+                    </div>
 
                     <div class="generate-dates">
                       <p class="quick-add__label">Generar fechas automáticamente</p>
@@ -333,6 +398,104 @@ const formatDate = (value: string) => {
       }
       .select-wrap { position: relative; max-width: 360px; }
 
+      /* ---------- Grupos de fechas por año / mes ---------- */
+      .date-groups { margin: 0 0 22px; }
+
+      .date-groups > .schedule-list__empty {
+        padding: 18px 16px;
+        color: #7a7562;
+        font-size: 0.9rem;
+        text-align: center;
+        border: 1px solid rgba(24, 34, 25, 0.1);
+        border-radius: var(--radius);
+        margin: 0;
+      }
+
+      .year-group {
+        border: 1px solid rgba(24, 34, 25, 0.1);
+        border-radius: var(--radius);
+        margin-bottom: 10px;
+        overflow: hidden;
+      }
+      .year-group:last-child { margin-bottom: 0; }
+
+      .year-group__summary {
+        list-style: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 14px 16px;
+        font-family: var(--font-display);
+        font-weight: 600;
+        font-size: 1rem;
+        color: var(--ink);
+        background: var(--parchment-alt);
+        user-select: none;
+      }
+      .year-group__summary::-webkit-details-marker { display: none; }
+      .year-group__summary::before {
+        content: "";
+        width: 7px;
+        height: 7px;
+        border-right: 1.6px solid var(--russet);
+        border-bottom: 1.6px solid var(--russet);
+        transform: rotate(-45deg);
+        transition: transform 0.15s ease;
+        flex-shrink: 0;
+      }
+      .year-group[open] > .year-group__summary::before { transform: rotate(45deg); }
+
+      .year-group__months { padding: 6px 12px 12px; }
+
+      .month-group {
+        border: 1px solid rgba(24, 34, 25, 0.08);
+        border-radius: calc(var(--radius) - 4px);
+        margin: 8px 0;
+        overflow: hidden;
+      }
+      .month-group:first-child { margin-top: 0; }
+      .month-group:last-child { margin-bottom: 0; }
+
+      .month-group__summary {
+        list-style: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 11px 14px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #4a5b4c;
+        background: var(--cream);
+        user-select: none;
+      }
+      .month-group__summary::-webkit-details-marker { display: none; }
+      .month-group__summary::before {
+        content: "";
+        width: 6px;
+        height: 6px;
+        border-right: 1.4px solid var(--russet);
+        border-bottom: 1.4px solid var(--russet);
+        transform: rotate(-45deg);
+        transition: transform 0.15s ease;
+        flex-shrink: 0;
+      }
+      .month-group[open] > .month-group__summary::before { transform: rotate(45deg); }
+
+      .group-count {
+        font-weight: 400;
+        color: #8a8272;
+        font-size: 0.85em;
+      }
+
+      .month-group .schedule-list {
+        margin: 0;
+        border: none;
+        border-radius: 0;
+        border-top: 1px dashed rgba(24, 34, 25, 0.12);
+      }
+
       .schedule-list {
         list-style: none;
         margin: 0 0 22px;
@@ -411,7 +574,7 @@ const formatDate = (value: string) => {
       const tourPicker = document.getElementById("tour-picker") as HTMLSelectElement | null;
       const banner = document.getElementById("admin-banner") as HTMLParagraphElement | null;
       const datesCard = document.getElementById("dates-card") as HTMLDivElement | null;
-      const dateList = document.getElementById("date-list") as HTMLUListElement | null;
+      const dateList = document.getElementById("date-list") as HTMLDivElement | null;
       const addForm = document.getElementById("add-date-form") as HTMLFormElement | null;
       const newDateInput = document.getElementById("new-date") as HTMLInputElement | null;
       const addBtn = document.getElementById("add-date-btn") as HTMLButtonElement | null;
@@ -518,27 +681,43 @@ const formatDate = (value: string) => {
         window.location.href = url.toString();
       });
 
-        function formatDate(value: string) {
+      function formatDate(value: string) {
         const datePart = value.includes("T") ? value.split("T")[0] : value;
         return new Date(datePart + "T00:00:00").toLocaleDateString("es-ES", {
-            day: "numeric",
-            month: "short",
-            year: "numeric"
+          day: "numeric",
+          month: "short",
+          year: "numeric"
         });
-        }
+      }
 
-      function emptyStateRow(): HTMLLIElement {
-        const li = document.createElement("li");
-        li.className = "schedule-list__empty";
-        li.id = "date-empty";
-        li.textContent = "Todavía no hay fechas para esta ruta.";
-        return li;
+      // Descompone "YYYY-MM-DD" (o "YYYY-MM-DDTHH:mm:ss") en las piezas que
+      // necesitamos para encontrar/crear su grupo de año y mes.
+      function parseDateParts(value: string) {
+        const datePart = value.includes("T") ? value.split("T")[0] : value;
+        const [year, month] = datePart.split("-");
+        return { datePart, year, monthKey: `${year}-${month}`, monthNum: Number(month) };
+      }
+
+      function monthLabelFor(year: string, monthNum: number) {
+        const formatter = new Intl.DateTimeFormat("es-ES", { month: "long" });
+        const label = formatter.format(new Date(Number(year), monthNum - 1, 1));
+        return label.charAt(0).toUpperCase() + label.slice(1);
+      }
+
+      function emptyStateRow(): HTMLParagraphElement {
+        const p = document.createElement("p");
+        p.className = "schedule-list__empty";
+        p.id = "date-empty";
+        p.textContent = "Todavía no hay fechas para esta ruta.";
+        return p;
       }
 
       function dateRow(dateEntry: { id: string; date: string }): HTMLLIElement {
+        const { datePart } = parseDateParts(dateEntry.date);
         const li = document.createElement("li");
         li.className = "schedule-list__item";
         li.setAttribute("data-date-id", dateEntry.id);
+        li.setAttribute("data-date", datePart);
         li.innerHTML = `
           <span class="schedule-list__time">${formatDate(dateEntry.date)}</span>
           <button type="button" class="admin__link-btn admin__link-btn--danger" data-delete-date="${dateEntry.id}">Eliminar</button>
@@ -546,9 +725,80 @@ const formatDate = (value: string) => {
         return li;
       }
 
+      function updateMonthCount(monthGroup: HTMLDetailsElement) {
+        const count = monthGroup.querySelectorAll(".schedule-list__item").length;
+        const countEl = monthGroup.querySelector(":scope > summary .group-count");
+        if (countEl) countEl.textContent = `(${count})`;
+      }
+
+      function updateYearCount(yearGroup: HTMLDetailsElement) {
+        const count = yearGroup.querySelectorAll(".schedule-list__item").length;
+        const countEl = yearGroup.querySelector(":scope > summary .group-count");
+        if (countEl) countEl.textContent = `(${count})`;
+      }
+
+      function getOrCreateYearGroup(year: string): HTMLDetailsElement | null {
+        if (!dateList) return null;
+        let yearGroup = dateList.querySelector<HTMLDetailsElement>(`:scope > details.year-group[data-year="${year}"]`);
+        if (yearGroup) return yearGroup;
+
+        yearGroup = document.createElement("details");
+        yearGroup.className = "year-group";
+        yearGroup.setAttribute("data-year", year);
+        yearGroup.open = true;
+        yearGroup.innerHTML = `
+          <summary class="year-group__summary">${year} <span class="group-count">(0)</span></summary>
+          <div class="year-group__months"></div>
+        `;
+
+        const existingYears = [...dateList.querySelectorAll<HTMLDetailsElement>(":scope > details.year-group")];
+        const next = existingYears.find((el) => (el.getAttribute("data-year") ?? "") > year);
+        if (next) dateList.insertBefore(yearGroup, next);
+        else dateList.appendChild(yearGroup);
+
+        return yearGroup;
+      }
+
+      function getOrCreateMonthGroup(
+        yearGroup: HTMLDetailsElement,
+        monthKey: string,
+        year: string,
+        monthNum: number
+      ): HTMLDetailsElement {
+        const monthsContainer = yearGroup.querySelector<HTMLDivElement>(":scope > .year-group__months")!;
+        let monthGroup = monthsContainer.querySelector<HTMLDetailsElement>(
+          `:scope > details.month-group[data-year-month="${monthKey}"]`
+        );
+        if (monthGroup) return monthGroup;
+
+        monthGroup = document.createElement("details");
+        monthGroup.className = "month-group";
+        monthGroup.setAttribute("data-year-month", monthKey);
+        monthGroup.open = true;
+        monthGroup.innerHTML = `
+          <summary class="month-group__summary">${monthLabelFor(year, monthNum)} <span class="group-count">(0)</span></summary>
+          <ul class="schedule-list"></ul>
+        `;
+
+        const existingMonths = [...monthsContainer.querySelectorAll<HTMLDetailsElement>(":scope > details.month-group")];
+        const next = existingMonths.find((el) => (el.getAttribute("data-year-month") ?? "") > monthKey);
+        if (next) monthsContainer.insertBefore(monthGroup, next);
+        else monthsContainer.appendChild(monthGroup);
+
+        return monthGroup;
+      }
+
+      function insertDateRow(ul: HTMLUListElement, row: HTMLLIElement) {
+        const rowDate = row.getAttribute("data-date") ?? "";
+        const existing = [...ul.querySelectorAll<HTMLLIElement>(":scope > li.schedule-list__item")];
+        const next = existing.find((li) => (li.getAttribute("data-date") ?? "") > rowDate);
+        if (next) ul.insertBefore(row, next);
+        else ul.appendChild(row);
+      }
+
       addForm?.addEventListener("submit", async (e) => {
         e.preventDefault();
-        if (!datesCard || !newDateInput || !addBtn) return;
+        if (!datesCard || !newDateInput || !addBtn || !dateList) return;
 
         addError?.classList.add("is-hidden");
 
@@ -568,13 +818,17 @@ const formatDate = (value: string) => {
           const data = await res.json();
           if (!res.ok) throw new Error(data?.message || "No se ha podido añadir la fecha.");
 
-          dateList?.querySelector("#date-empty")?.remove();
-          const row = dateRow(data);
-          const items = [...(dateList?.querySelectorAll<HTMLLIElement>(".schedule-list__item") ?? [])];
-          const next = items.find((item) => (item.getAttribute("data-date-id") ?? "") && item.querySelector(".schedule-list__time")?.textContent && data.date < (item as any)._rawDate);
-          // Simplest correct approach: just append then re-sort by re-fetching order via data-date attribute isn't tracked,
-          // so append at the end — dates are still all visible and correctly labelled.
-          dateList?.appendChild(row);
+          dateList.querySelector("#date-empty")?.remove();
+
+          const { year, monthKey, monthNum } = parseDateParts(data.date);
+          const yearGroup = getOrCreateYearGroup(year);
+          if (yearGroup) {
+            const monthGroup = getOrCreateMonthGroup(yearGroup, monthKey, year, monthNum);
+            const ul = monthGroup.querySelector("ul.schedule-list") as HTMLUListElement;
+            insertDateRow(ul, dateRow(data));
+            updateMonthCount(monthGroup);
+            updateYearCount(yearGroup);
+          }
 
           newDateInput.value = "";
           showBanner("Fecha añadida.");
@@ -592,7 +846,7 @@ const formatDate = (value: string) => {
       dateList?.addEventListener("click", async (e) => {
         const target = e.target as HTMLElement;
         const dateId = target.getAttribute("data-delete-date");
-        if (!dateId || !datesCard) return;
+        if (!dateId || !datesCard || !dateList) return;
 
         const confirmed = await confirmDialog({
           title: "Eliminar fecha",
@@ -610,10 +864,24 @@ const formatDate = (value: string) => {
           const data = await res.json();
           if (!res.ok) throw new Error(data?.message || "No se ha podido eliminar la fecha.");
 
-          const row = dateList?.querySelector(`li[data-date-id="${dateId}"]`);
+          const row = dateList.querySelector(`li[data-date-id="${dateId}"]`);
+          const monthGroup = row?.closest("details.month-group") as HTMLDetailsElement | null;
+          const yearGroup = row?.closest("details.year-group") as HTMLDetailsElement | null;
           row?.remove();
-          if (!dateList?.querySelector(".schedule-list__item")) {
-            dateList?.appendChild(emptyStateRow());
+
+          if (monthGroup) {
+            const remaining = monthGroup.querySelectorAll(".schedule-list__item").length;
+            if (remaining === 0) monthGroup.remove();
+            else updateMonthCount(monthGroup);
+          }
+          if (yearGroup) {
+            const remainingInYear = yearGroup.querySelectorAll(".schedule-list__item").length;
+            if (remainingInYear === 0) yearGroup.remove();
+            else updateYearCount(yearGroup);
+          }
+
+          if (!dateList.querySelector(".schedule-list__item")) {
+            dateList.appendChild(emptyStateRow());
           }
           showBanner("Fecha eliminada.");
         } catch (err: any) {
