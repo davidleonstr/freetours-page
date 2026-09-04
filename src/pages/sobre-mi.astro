@@ -1,0 +1,492 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sobre mí — Meriyo Tours (Dublin)</title>
+<link rel="icon" href="/web-icon-orange.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Work+Sans:wght@400;500;600;700&display=swap"
+  rel="stylesheet"
+/>
+<style>
+  :root{
+    --forest-deep: #16311F;
+    --forest: #234631;
+    --gold: #C7A03C;
+    --gold-soft: #E4CE8C;
+    --cream: #FBF6EA;
+    --parchment: #F1E9D4;
+    --parchment-alt: #F2EAD7;
+    --ink: #1E2A20;
+    --line: rgba(22, 49, 31, 0.16);
+    --rust: #A24A2C;
+    --font-display: "Fraunces", serif;
+    --font-body: "Work Sans", sans-serif;
+  }
+  *{ box-sizing: border-box; }
+  html{ scroll-behavior: smooth; }
+  body{
+    margin:0;
+    background: var(--cream);
+    color: var(--ink);
+    font-family: var(--font-body);
+    line-height: 1.65;
+  }
+  .wrap{ max-width: 880px; margin-inline:auto; padding-inline: 24px; }
+  a{ color: inherit; }
+
+  /* ---- nav ---- */
+  .nav{
+    position: sticky; top:0; z-index: 20;
+    background: rgba(251,246,234,0.92);
+    backdrop-filter: blur(6px);
+    border-bottom: 1px solid var(--line);
+  }
+  .nav__row{
+    display:flex; align-items:center; justify-content:space-between;
+    padding-block: 14px;
+  }
+  .nav__logo{
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 1.15rem;
+    color: var(--forest-deep);
+    text-decoration:none;
+  }
+  .nav__logo em{ color: var(--gold); font-style: italic; }
+  .nav__back{
+    font-size: 0.82rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--forest);
+    text-decoration:none;
+    border-bottom: 1px solid var(--gold);
+    padding-bottom: 2px;
+  }
+
+  /* ---- hero: full portrait with overlaid intro ---- */
+  .bio-hero{
+    position: relative;
+    display:grid;
+    grid-template-columns: 0.95fr 1.05fr;
+    min-height: 78vh;
+    border-bottom: 1px solid var(--line);
+  }
+  @media (max-width: 760px){
+    .bio-hero{ grid-template-columns: 1fr; min-height: auto; }
+  }
+  .bio-hero__img{
+    position: relative;
+    overflow: hidden;
+    min-height: 360px;
+  }
+  .bio-hero__img img{
+    width:100%; height:100%; object-fit: cover; display:block;
+  }
+  .bio-hero__img::after{
+    content:"";
+    position:absolute; inset:0;
+    background: linear-gradient(180deg, transparent 60%, rgba(22,49,31,0.35) 100%);
+  }
+  .bio-hero__copy{
+    display:flex; flex-direction:column; justify-content:center;
+    padding: 56px 48px;
+  }
+  @media (max-width: 760px){
+    .bio-hero__copy{ padding: 40px 24px 32px; order: 1; }
+    .bio-hero__img{ order: 2; min-height: 300px; }
+  }
+  .bio-hero__eyebrow{
+    font-size: 0.78rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--rust);
+    font-weight: 600;
+    margin: 0 0 16px;
+  }
+  .bio-hero__copy h1{
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(2rem, 4.4vw, 2.9rem);
+    line-height: 1.12;
+    margin: 0 0 22px;
+    color: var(--forest-deep);
+  }
+  .bio-hero__copy h1 em{ color: var(--gold); font-style: italic; }
+  .bio-hero__copy p{
+    font-size: 1.06rem;
+    color: var(--forest);
+    max-width: 46ch;
+    margin: 0 0 10px;
+  }
+  .bio-hero__sign{
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 1.3rem;
+    color: var(--forest-deep);
+    margin-top: 18px;
+  }
+
+  /* ---- highlight strip ---- */
+  .traits{
+    display:grid;
+    grid-template-columns: repeat(4, 1fr);
+    border-bottom: 1px solid var(--line);
+  }
+  @media (max-width: 700px){ .traits{ grid-template-columns: repeat(2, 1fr); } }
+  .trait{
+    padding: 26px 20px;
+    text-align:center;
+    border-right: 1px solid var(--line);
+  }
+  .trait:last-child{ border-right:none; }
+  @media (max-width: 700px){
+    .trait:nth-child(2){ border-right:none; }
+    .trait{ border-bottom: 1px solid var(--line); }
+    .trait:nth-last-child(-n+2){ border-bottom:none; }
+  }
+  .trait__label{
+    font-family: var(--font-display);
+    font-weight: 600;
+    color: var(--forest-deep);
+    font-size: 1rem;
+    margin: 0 0 4px;
+  }
+  .trait__sub{
+    font-size: 0.8rem;
+    color: var(--rust);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin:0;
+  }
+
+  /* ---- story sections ---- */
+  .story{ padding-block: 56px; }
+  .story__section{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+    align-items:center;
+    padding-block: 40px;
+    border-bottom: 1px solid var(--line);
+  }
+  .story__section:last-child{ border-bottom:none; }
+  .story__section.reverse{ direction: rtl; }
+  .story__section.reverse > *{ direction: ltr; }
+  @media (max-width: 760px){
+    .story__section, .story__section.reverse{ grid-template-columns: 1fr; direction: ltr; }
+  }
+  .story__section figure{ margin:0; }
+  .story__section img{
+    width:100%; display:block; border-radius: 4px; border: 1px solid var(--line);
+    aspect-ratio: 4/3; object-fit: cover;
+  }
+  .story__kicker{
+    font-size: 0.78rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--rust);
+    font-weight: 600;
+    margin: 0 0 12px;
+  }
+  .story__section h2{
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 1.7rem;
+    color: var(--forest-deep);
+    margin: 0 0 16px;
+  }
+  .story__section p{ margin: 0 0 12px; }
+
+  /* ---- full-width quote ---- */
+  .quote-band{
+    background: var(--forest-deep);
+    color: var(--parchment-alt);
+    padding-block: 64px;
+    text-align:center;
+  }
+  .quote-band blockquote{
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 500;
+    font-size: clamp(1.4rem, 3.2vw, 2rem);
+    max-width: 34ch;
+    margin: 0 auto;
+    color: var(--gold-soft);
+    line-height: 1.4;
+  }
+  .quote-band cite{
+    display:block;
+    margin-top: 20px;
+    font-style: normal;
+    font-family: var(--font-body);
+    font-size: 0.85rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(242,234,215,0.7);
+  }
+
+  /* ---- promise box ---- */
+  .promise{ padding-block: 56px; }
+  .promise__inner{
+    background: var(--parchment);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 36px 40px;
+    text-align:center;
+  }
+  .promise__inner h2{
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 600;
+    color: var(--forest-deep);
+    font-size: 1.5rem;
+    margin: 0 0 14px;
+  }
+  .promise__inner p{ margin:0 0 8px; max-width: 56ch; margin-inline:auto; }
+  .promise__sign{
+    font-family: var(--font-display);
+    font-weight: 600;
+    color: var(--gold);
+    letter-spacing: 0.06em;
+    margin-top: 16px;
+    text-transform: uppercase;
+    font-size: 0.95rem;
+  }
+
+  /* ---- cta ---- */
+  .cta-final{ padding-block: 0 64px; text-align:center; }
+  .cta-final h2{
+    font-family: var(--font-display);
+    font-weight: 600;
+    color: var(--forest-deep);
+    font-size: 1.6rem;
+    margin: 0 0 14px;
+  }
+  .cta-final p{ max-width: 50ch; margin: 0 auto 22px; }
+  .cta-final a.btn{
+    display:inline-block;
+    background: var(--forest-deep);
+    color: var(--cream);
+    text-decoration:none;
+    padding: 12px 28px;
+    border-radius: 3px;
+    font-size: 0.88rem;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+
+  /* ---- footer ---- */
+  .site-footer {
+    background: var(--forest-deep);
+    color: var(--parchment-alt);
+    padding-block: 40px;
+    border-top: 1px solid var(--line);
+  }
+  .site-footer__row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .site-footer__logo {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 1.05rem;
+    color: var(--cream);
+    margin: 0 0 8px;
+  }
+  .site-footer__logo em { color: var(--gold); }
+  .site-footer__text {
+    max-width: 46ch;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: var(--parchment-alt);
+    margin: 0;
+  }
+  .site-footer__copy {
+    font-size: 0.78rem;
+    color: rgba(242, 234, 215, 0.6);
+    margin: 0;
+  }
+  .footer__social { display: flex; align-items: center; gap: 20px; }
+  .footer__social svg { width: 26px; height: 26px; display: block; }
+  .nav__icon{ color: var(--parchment-alt); }
+</style>
+</head>
+<body>
+
+  <nav class="nav">
+    <div class="wrap nav__row">
+      <a class="nav__logo" href="#"><em>Meriyo</em> Tours Dublín</a>
+      <a class="nav__back" href="/">← Volver al inicio</a>
+    </div>
+  </nav>
+
+  <!-- HERO: retrato a pantalla completa + presentación -->
+  <header class="bio-hero">
+    <div class="bio-hero__img">
+      <img src="/images/m-1.jpeg" alt="Meriyo Ponce, guía de Meriyo Tours Dublín" />
+    </div>
+    <div class="bio-hero__copy">
+      <p class="bio-hero__eyebrow">Sobre mí</p>
+      <h1>Rugby, cerveza<br/>y una isla que me <em>atrapó</em></h1>
+      <p>
+        Soy Meriyo Ponce: exjugadora de rugby en España, aficionada a la
+        fotografía y amante de la historia. El rugby y la cerveza me
+        trajeron hasta Dublín... las leyendas vikingas fueron las que me
+        hicieron quedarme.
+      </p>
+      <p class="bio-hero__sign">— Meriyo</p>
+    </div>
+  </header>
+
+  <!-- FRANJA DE RASGOS -->
+  <section class="traits">
+    <div class="trait">
+      <p class="trait__label">Rugby</p>
+      <p class="trait__sub">Exjugadora</p>
+    </div>
+    <div class="trait">
+      <p class="trait__label">Fotografía</p>
+      <p class="trait__sub">Aficionada</p>
+    </div>
+    <div class="trait">
+      <p class="trait__label">Historia</p>
+      <p class="trait__sub">Amante</p>
+    </div>
+    <div class="trait">
+      <p class="trait__label">Dublín</p>
+      <p class="trait__sub">Su hogar</p>
+    </div>
+  </section>
+
+  <!-- HISTORIA, en dos bloques alternados -->
+  <section class="story wrap">
+
+    <div class="story__section">
+      <div>
+        <p class="story__kicker">Cómo empezó todo</p>
+        <h2>El rugby y la cerveza me trajeron hasta aquí</h2>
+        <p>
+          Nada de esto empezó como un plan. Vine por el rugby —y, si soy
+          sincera, también por la cerveza— y me quedé por algo que no
+          esperaba encontrar: las historias vikingas, las leyendas y el
+          misticismo de la Isla Esmeralda terminaron de atraparme.
+        </p>
+        <p>
+          Cuanto más aprendía sobre su historia y su cultura, más ganas
+          tenía de seguir descubriendo, de aprender y, sobre todo, de
+          compartir todo aquello que iba encontrando por el camino.
+        </p>
+      </div>
+      <figure>
+        <img src="/images/m-2.jpeg" alt="Meriyo Ponce" />
+      </figure>
+    </div>
+
+    <div class="story__section reverse">
+      <div>
+        <p class="story__kicker">Por qué hago free tours</p>
+        <h2>Quiero que tú también te enamores de Dublín</h2>
+        <p>
+          O, al menos, que te lleves de la isla un recuerdo inolvidable.
+          ¿Te vienes conmigo a descubrir esos rincones que tienes que
+          visitar sí o sí?
+        </p>
+        <p>
+          ¿A viajar un poquito en el tiempo e imaginar cómo era el mundo
+          vikingo? ¿A conocer historias de hadas, duendes, dioses,
+          batallas y leyendas? Te prometo que vamos a aprender, a
+          descubrir un montón de cosas y, sobre todo, a pasarlo genial.
+        </p>
+      </div>
+      <figure>
+        <img src="/images/background-3.jpeg" alt="Calles" />
+      </figure>
+    </div>
+
+  </section>
+
+  <!-- CITA DESTACADA -->
+  <section class="quote-band">
+    <div class="wrap">
+      <blockquote>
+        "Cuanto más aprendía sobre Dublín, más ganas tenía de compartirlo."
+      </blockquote>
+      <cite>Meriyo Ponce · Meriyo Tours Dublín</cite>
+    </div>
+  </section>
+
+  <!-- PROMESA -->
+  <section class="promise wrap">
+    <div class="promise__inner">
+      <h2>Mi promesa</h2>
+      <p>
+        Vamos a aprender, a descubrir un montón de cosas y, sobre todo,
+        a pasarlo genial. Grupos reducidos, ritmo tranquilo y todas las
+        historias que no salen en las postales.
+      </p>
+      <p class="promise__sign">Sláinte!</p>
+    </div>
+  </section>
+
+  <!-- CTA FINAL -->
+  <section class="cta-final wrap">
+    <h2>¿Nos vamos a descubrir Dublín juntos?</h2>
+    <p>
+      Organizo free tours para conocer la
+      cara de Dublín que no sale en las postales.
+    </p>
+    <a class="btn" href="/#excursiones">Ver horarios del free tour</a>
+  </section>
+
+  <footer class="site-footer" id="sobre-mi">
+    <div class="wrap site-footer__row">
+      <div>
+        <p class="site-footer__logo"><em>Meriyo</em> Tours <em>Dublín</em></p>
+        <p class="site-footer__text">
+          Dublín que no sale en las
+          postales. Free tours con reserva anticipada.
+        </p>
+      </div>
+      <div class="footer__social" aria-label="Redes sociales">
+        <a href="https://www.instagram.com/meriyotoursdublin?utm_source=qr&igsi=bW1sMWg2cTl3aXdl " aria-label="Instagram" class="nav__icon">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6">
+            <rect x="3" y="3" width="18" height="18" rx="5"/>
+            <circle cx="12" cy="12" r="4.2"/>
+            <circle cx="17.3" cy="6.7" r="0.9" fill="currentColor" stroke="none"/>
+          </svg>
+        </a>
+        <a href="https://www.tiktok.com/@meriyotours?_r=1&_t=ZN-996MxyUnSGk " aria-label="TikTok" class="nav__icon">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+            <path d="M14.5 3h2.6c.2 1.6 1.2 3 2.8 3.6v2.7c-1.4 0-2.8-.4-3.9-1.2v6.6c0 3-2.4 5.3-5.4 5.3S5.2 17.7 5.2 14.7c0-2.9 2.3-5.2 5.2-5.3v2.8c-1.3.1-2.4 1.2-2.4 2.5 0 1.4 1.2 2.5 2.6 2.5s2.6-1.1 2.6-2.5V3z"/>
+          </svg>
+        </a>
+        <a href="https://www.facebook.com/people/MeriyoTours/61593730161963/?rdid=iuVWVNEKzYqnFpZ3&share_url=https%3A%2F% 2Fwww.facebook.com%2Fshare%2F1H9FrGtubn%2F " aria-label="Facebook" class="nav__icon">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+            <path d="M13.5 21v-7.6h2.6l.4-3h-3v-1.9c0-.9.2-1.5 1.5-1.5h1.6V4.3C15.9 4.2 15 4.1 14 4.1c-2.3 0-3.9 1.4-3.9 4v2.3H7.5v3H10V21h3.5z"/>
+          </svg>
+        </a>
+        <a href="https://x.com/meriyotours " aria-label="X (Twitter)" class="nav__icon">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+            <path d="M18.9 3h3.1l-6.8 7.7L23.2 21h-6.3l-4.9-6.4L6.3 21H3.2l7.2-8.3L2.8 3h6.4l4.5 5.9L18.9 3zm-1.1 16.2h1.7L7.3 4.7H5.5l12.3 14.5z"/>
+          </svg>
+        </a>
+        <a href="https://www.youtube.com/@meriyotours " aria-label="YouTube" class="nav__icon">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+            <path d="M22.5 7.2c-.3-1.1-1.1-1.9-2.2-2.2C18.4 4.5 12 4.5 12 4.5s-6.4 0-8.3.5c-1.1.3-1.9 1.1-2.2 2.2C1 9.1 1 12 1 12s0 2.9.5 4.8c.3 1.1 1.1 1.9 2.2 2.2 1.9.5 8.3.5 8.3.5s6.4 0 8.3-.5c1.1-.3 1.9-1.1 2.2-2.2.5-1.9.5-4.8.5-4.8s0-2.9-.5-4.8zM9.8 15.3V8.7l6 3.3-6 3.3z"/>
+          </svg>
+        </a>
+      </div>
+      <p class="site-footer__copy">© 2026 Meriyo Tours (Dublin)</p>
+    </div>
+  </footer>
+
+</body>
+</html>
