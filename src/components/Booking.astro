@@ -1219,8 +1219,15 @@ const preselectedTour = Astro.url.searchParams.get("tour") ?? "";
 
       if (thisRequest !== dateRequestToken) return;
 
+      // Solo mostrar hoy en adelante.
+      const todayStr = new Date().toLocaleDateString('sv-SE'); // "YYYY-MM-DD" en zona horaria local
+      const upcomingDates = (dates ?? []).filter((d) => {
+        const datePart = d.date.includes('T') ? d.date.split('T')[0] : d.date;
+        return datePart >= todayStr;
+      });
+
       fechaSelect.innerHTML = '';
-      if (!dates || dates.length === 0) {
+      if (upcomingDates.length === 0) {
         fechaSelect.disabled = true;
         fechaSelect.append(new Option('No hay fechas disponibles para esta ruta', ''));
         updateSummary();
@@ -1230,7 +1237,7 @@ const preselectedTour = Astro.url.searchParams.get("tour") ?? "";
       fechaSelect.disabled = false;
       fechaSelect.append(new Option('Elige una fecha', '', true, true));
       fechaSelect.options[0].disabled = true;
-      for (const d of dates) {
+      for (const d of upcomingDates) {
         fechaSelect.append(new Option(formatDate(d.date), d.id));
       }
       updateSummary();

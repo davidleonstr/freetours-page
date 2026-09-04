@@ -194,7 +194,11 @@ const partySummary = [
                   <div class="select-wrap">
                     <select id="edit-date" name="tourDateId">
                       {tourDates.map((d: any) => (
-                        <option value={d.id} selected={d.id === booking!.tour_date_id}>
+                        <option
+                          value={d.id}
+                          data-date={d.date.includes("T") ? d.date.split("T")[0] : d.date}
+                          selected={d.id === booking!.tour_date_id}
+                        >
                           {formatDate(d.date)}
                         </option>
                       ))}
@@ -514,6 +518,26 @@ const partySummary = [
   const petsInput = document.getElementById("edit-pets") as HTMLInputElement | null;
   const statusPill = document.getElementById("status-pill");
 
+  // Oculta del desplegable las fechas ya pasadas (según la zona horaria del
+  // visitante), pero conserva siempre la fecha que la reserva tiene
+  // actualmente asignada, aunque ya haya pasado — así no se pierde la
+  // selección ni se rompe el formulario si alguien entra a editar una
+  // reserva antigua.
+  function filterPastDates() {
+    if (!dateSelect) return;
+    const todayStr = new Date().toLocaleDateString("sv-SE"); // "YYYY-MM-DD" en zona horaria local del navegador
+    const currentValue = dateSelect.value;
+
+    Array.from(dateSelect.options).forEach((opt) => {
+      const optDate = opt.dataset.date;
+      if (!optDate) return; // por seguridad, si falta el dato no se toca
+      if (optDate < todayStr && opt.value !== currentValue) {
+        opt.remove();
+      }
+    });
+  }
+  filterPastDates();
+
   function showBanner(message: string, isError = false) {
     if (!banner) return;
     banner.textContent = message;
@@ -642,31 +666,3 @@ const partySummary = [
     }
   }
 </script>
-
-<!--
-============================================================================
-REQUIRED ADDITIONS (backend routes already exist — just wire the frontend
-up to them):
-
-1) Add to src/lib/api.js, in the "--- Bookings ---" section:
-
-  export function updateBooking(id, data, token) {
-    return apiFetch(`/bookings/${id}`, {
-      method: 'PATCH',
-      body: JSON.stringify(data),
-      headers: { Authorization: `Bearer ${token}` }
-    });
-  }
-
-  export function cancelBooking(id, token) {
-    return apiFetch(`/bookings/${id}`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${token}` }
-    });
-  }
-
-2) Create src/pages/api/bookings/[id].js with PATCH + DELETE handlers that
-   read the session cookie and forward it as the Bearer token to
-   updateBooking/cancelBooking. Full file provided alongside this one.
-============================================================================
--->

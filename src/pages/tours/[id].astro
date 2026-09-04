@@ -85,10 +85,15 @@ const myReview = currentCustomer
 
 function splitCaption(text: string): { title: string | null; body: string | null } {
   const trimmed = text.trim();
-  const match = trimmed.match(/^([^.!?]{1,40}[.!?])\s*(.*)$/);
+  
+  // Changed {1,40} to + so it accommodates titles of any length before the first punctuation
+  const match = trimmed.match(/^([^.!?]+[.!?][)\]"']?)\s+([\s\S]*)$/);
+  
   if (match && match[2]) {
-    return { title: match[1].replace(/[.!?]$/, ''), body: match[2] };
+    const cleanTitle = match[1].replace(/[.!?]+([)\]"']*)$/, '$1');
+    return { title: cleanTitle, body: match[2] };
   }
+  
   return { title: null, body: trimmed };
 }
 
@@ -746,7 +751,7 @@ function formatDuration(hoursFloat: number | null) {
 
     const latlngs = [];
     points.forEach((p) => {
-      const marker = L.marker([p.lat, p.lng], { icon: numberedIcon(p.isStart ? 'M' : p.number) }).addTo(map);
+      const marker = L.marker([p.lat, p.lng], { icon: numberedIcon(p.isStart ? 'P' : p.number) }).addTo(map);
       const parts = [`<strong>${p.isStart ? 'Punto de encuentro' : (p.label ?? `Parada ${p.number}`)}</strong>`];
       if (p.description) parts.push(p.description);
       marker.bindPopup(parts.join('<br>'));
