@@ -1179,6 +1179,43 @@ const preselectedTour = Astro.url.searchParams.get("tour") ?? "";
     // the seconds for display.
     const formatTime = (value: string) => value?.slice(0, 5) ?? value;
 
+    // Fecha y hora actuales en Dublín (Europe/Dublin), usada siempre como
+    // referencia para no permitir reservar horarios que ya han pasado hoy,
+    // sea cual sea la zona horaria del dispositivo del visitante.
+    function getDublinNow(): { date: string; time: string } {
+      const now = new Date();
+      const parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Europe/Dublin',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hourCycle: 'h23'
+      }).formatToParts(now);
+
+      const map: Record<string, string> = {};
+      for (const p of parts) map[p.type] = p.value;
+
+      return {
+        date: `${map.year}-${map.month}-${map.day}`, // "YYYY-MM-DD"
+        time: `${map.hour}:${map.minute}:${map.second}` // "HH:MM:SS"
+      };
+    }
+
+    const BOOKING_CUTOFF_MINUTES = 25;
+
+    function timeToMinutes(time: string): number {
+      const [h, m] = time.split(':').map(Number);
+      return h * 60 + m;
+    }
+
+    function getDublinCutoffMinutes(): number {
+      const dublinNow = getDublinNow();
+      return timeToMinutes(dublinNow.time) + BOOKING_CUTOFF_MINUTES;
+    }
+
     function getCurrentCapacity(): number {
       const selected = tourSelect.selectedOptions[0];
       const cap = Number(selected?.dataset.capacity);
@@ -1219,8 +1256,9 @@ const preselectedTour = Astro.url.searchParams.get("tour") ?? "";
 
       if (thisRequest !== dateRequestToken) return;
 
-      // Solo mostrar hoy en adelante.
-      const todayStr = new Date().toLocaleDateString('sv-SE'); // "YYYY-MM-DD" en zona horaria local
+      // Solo mostrar hoy en adelante (referencia: hora de Dublín, no la del
+      // dispositivo del visitante).
+      const todayStr = getDublinNow().date;
       const upcomingDates = (dates ?? []).filter((d) => {
         const datePart = d.date.includes('T') ? d.date.split('T')[0] : d.date;
         return datePart >= todayStr;
@@ -1239,6 +1277,65 @@ const preselectedTour = Astro.url.searchParams.get("tour") ?? "";
       fechaSelect.options[0].disabled = true;
       for (const d of upcomingDates) {
         fechaSelect.append(new Option(formatDate(d.date), d.id));
+      }
+      updateSummary();
+    }
+
+    // Dado el id de fecha seleccionado (tourDateId), devuelve su "YYYY-MM-DD"
+    // consultando la caché de fechas de la ruta actual.
+    function getSelectedDateStr(): string | null {
+      const tourId = tourSelect.value;
+      const dateId = fechaSelect.value;
+      if (!tourId || !dateId) return null;
+      const dates = dateCache.get(tourId);
+      const match = dates?.find((d) => d.id === dateId);
+      if (!match) return null;
+      return match.date.includes('T') ? match.date.split('T')[0] : match.date;
+    }
+
+    // Pinta las opciones de hora a partir de la lista de horarios de la
+    // ruta, ocultando los que ya han pasado cuando la fecha elegida es hoy
+    // (siempre comparando contra la hora de Dublín).
+    function renderHoraOptions(schedules: { id: string; time: string }[]) {
+      const dublinNow = getDublinNow();
+      const selectedDateStr = getSelectedDateStr();
+      const isToday = selectedDateStr === dublinNow.date;
+
+      // Para hoy, exige al menos BOOKING_CUTOFF_MINUTES de margen antes de
+      // la salida (p. ej. si son las 10:24, una salida a las 10:40 tampoco
+      // se puede reservar porque quedan menos de 25 minutos).
+      const cutoffMinutes = getDublinCutoffMinutes();
+      const visibleSchedules = isToday
+        ? schedules.filter((s) => timeToMinutes(s.time) > cutoffMinutes)
+        : schedules;
+
+      const previousValue = horaSelect.value;
+      horaSelect.innerHTML = '';
+
+      if (visibleSchedules.length === 0) {
+        horaSelect.disabled = true;
+        horaSelect.append(
+          new Option(
+            isToday && schedules.length > 0
+              ? 'No quedan horarios disponibles hoy'
+              : 'No hay horarios disponibles para esta ruta',
+            ''
+          )
+        );
+        updateSummary();
+        return;
+      }
+
+      horaSelect.disabled = false;
+      horaSelect.append(new Option('Elige una hora', '', true, true));
+      horaSelect.options[0].disabled = true;
+      for (const schedule of visibleSchedules) {
+        horaSelect.append(new Option(formatTime(schedule.time), schedule.id));
+      }
+      // Conserva la hora previamente elegida si sigue siendo válida tras
+      // cambiar de fecha.
+      if (previousValue && visibleSchedules.some((s) => s.id === previousValue)) {
+        horaSelect.value = previousValue;
       }
       updateSummary();
     }
@@ -1272,21 +1369,7 @@ const preselectedTour = Astro.url.searchParams.get("tour") ?? "";
 
       if (thisRequest !== scheduleRequestToken) return;
 
-      horaSelect.innerHTML = '';
-      if (!schedules || schedules.length === 0) {
-        horaSelect.disabled = true;
-        horaSelect.append(new Option('No hay horarios disponibles para esta ruta', ''));
-        updateSummary();
-        return;
-      }
-
-      horaSelect.disabled = false;
-      horaSelect.append(new Option('Elige una hora', '', true, true));
-      horaSelect.options[0].disabled = true;
-      for (const schedule of schedules) {
-        horaSelect.append(new Option(formatTime(schedule.time), schedule.id));
-      }
-      updateSummary();
+      renderHoraOptions(schedules ?? []);
     }
 
     async function checkAvailability() {
@@ -1428,12 +1511,20 @@ const preselectedTour = Astro.url.searchParams.get("tour") ?? "";
       loadDatesForSelectedTour();
       loadSchedulesForSelectedTour();
     });
-    [fechaSelect, horaSelect].forEach((el) =>
-      el.addEventListener('change', () => {
-        updateSummary();
-        checkAvailability();
-      })
-    );
+
+    fechaSelect.addEventListener('change', () => {
+      // La fecha elegida puede cambiar qué horarios siguen disponibles
+      // (p. ej. al elegir "hoy" en Dublín, las horas ya pasadas se ocultan).
+      const tourId = tourSelect.value;
+      const schedules = scheduleCache.get(tourId) ?? [];
+      renderHoraOptions(schedules);
+      checkAvailability();
+    });
+
+    horaSelect.addEventListener('change', () => {
+      updateSummary();
+      checkAvailability();
+    });
 
     function showError(message: string) {
       formError.textContent = message;
@@ -1491,6 +1582,24 @@ const preselectedTour = Astro.url.searchParams.get("tour") ?? "";
       if (!horaSelect.value) {
         showError('Selecciona una hora de inicio.');
         return;
+      }
+
+      // Comprobación defensiva: si por lo que sea la hora elegida ya pasó
+      // en Dublín para la fecha seleccionada (p. ej. el visitante dejó la
+      // pestaña abierta un rato), bloquear el envío en vez de confiar solo
+      // en el filtrado visual del <select>.
+      const selectedDateStr = getSelectedDateStr();
+      const dublinNow = getDublinNow();
+      if (selectedDateStr === dublinNow.date) {
+        const tourId = tourSelect.value;
+        const schedules = scheduleCache.get(tourId) ?? [];
+        const chosenSchedule = schedules.find((s) => s.id === horaSelect.value);
+        const cutoffMinutes = getDublinCutoffMinutes();
+        if (chosenSchedule && timeToMinutes(chosenSchedule.time) <= cutoffMinutes) {
+          showError('Quedan menos de 25 minutos para esa salida. Elige otra hora disponible.');
+          renderHoraOptions(schedules);
+          return;
+        }
       }
 
       const guests = Number(guestsInput.value);
