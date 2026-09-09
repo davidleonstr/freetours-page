@@ -175,29 +175,6 @@ const canShowForm = !!currentCustomer && tours.length > 0;
           <p class="reviews-hub-hero__lede">
             Reseñas reales de personas que hicieron alguna de nuestras rutas por Dublín.
           </p>
-
-          {!reviewsError && totalReviews > 0 && (
-            <div class="reviews-hub-stats">
-              <div class="reviews-hub-stats__item">
-                <span class="reviews-hub-stats__value">{overallAverage.toFixed(1)}</span>
-                <span class="reviews-hub-stats__label">Media general</span>
-              </div>
-              <div class="reviews-hub-stats__divider"></div>
-              <div class="reviews-hub-stats__item">
-                <span class="reviews-hub-stats__value">{totalReviews}</span>
-                <span class="reviews-hub-stats__label">
-                  {totalReviews === 1 ? "Reseña" : "Reseñas"}
-                </span>
-              </div>
-              <div class="reviews-hub-stats__divider"></div>
-              <div class="reviews-hub-stats__item">
-                <span class="reviews-hub-stats__value">{tours.length}</span>
-                <span class="reviews-hub-stats__label">
-                  {tours.length === 1 ? "Ruta" : "Rutas"}
-                </span>
-              </div>
-            </div>
-          )}
         </div>
       </section>
 
