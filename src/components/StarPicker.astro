@@ -1,0 +1,97 @@
+---
+// components/StarPicker.astro
+//
+// El selector interactivo de 1 a 5 estrellas (botones ★ + input hidden +
+// script de hover/click) estaba reimplementado casi idéntico tres veces:
+// en Tours.astro, pages/reseñas.astro y pages/tours/[id].astro.
+//
+// Este componente es autocontenido: pinta los botones, gestiona el hover
+// y el click, y guarda el valor elegido en un <input type="hidden">.
+//
+// Uso dentro de tu <form>:
+//   <StarPicker />
+//   ...
+//   <script>
+//     const stars = Number(
+//       (document.getElementById('star-picker-value') as HTMLInputElement).value
+//     );
+//   </script>
+//
+// Si vas a tener más de un StarPicker en la misma página (poco probable,
+// pero por si acaso), pásale un id distinto a cada uno:
+//   <StarPicker id="star-picker-a" />
+//   <StarPicker id="star-picker-b" />
+
+interface Props {
+  inputName?: string;
+  id?: string;
+  label?: string;
+}
+
+const { inputName = "stars", id = "star-picker", label = "Puntuación" } = Astro.props;
+---
+
+<div class="field">
+  <label id={`${id}-label`}>{label}<em>*</em></label>
+  <div class="star-picker" id={id} role="radiogroup" aria-labelledby={`${id}-label`}>
+    {[1, 2, 3, 4, 5].map((n) => (
+      <button type="button" class="star-picker__star" data-star={n} aria-label={`${n} estrellas`}>★</button>
+    ))}
+  </div>
+  <input type="hidden" id={`${id}-value`} name={inputName} />
+</div>
+
+<style>
+  .field { margin-bottom: 0; }
+  label {
+    display: block;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #4a5b4c;
+    margin-bottom: 8px;
+  }
+  label em { font-style: normal; color: var(--russet); margin-left: 2px; }
+
+  .star-picker { display: flex; gap: 6px; }
+  .star-picker__star {
+    background: none;
+    border: none;
+    font-size: 1.6rem;
+    line-height: 1;
+    color: rgba(24, 34, 25, 0.22);
+    cursor: pointer;
+    padding: 2px;
+    transition: color 0.15s ease, transform 0.15s ease;
+  }
+  .star-picker__star:hover { transform: translateY(-1px); }
+  .star-picker__star.is-filled { color: var(--gold); }
+</style>
+
+<script define:vars={{ id }}>
+  const picker = document.getElementById(id);
+  const input = document.getElementById(`${id}-value`);
+  let selected = 0;
+
+  function paint(count) {
+    picker?.querySelectorAll(".star-picker__star").forEach((btn) => {
+      const n = Number(btn.dataset.star);
+      btn.classList.toggle("is-filled", n <= count);
+    });
+  }
+
+  picker?.addEventListener("click", (e) => {
+    const btn = e.target.closest(".star-picker__star");
+    if (!btn) return;
+    selected = Number(btn.dataset.star);
+    if (input) input.value = String(selected);
+    paint(selected);
+  });
+
+  picker?.addEventListener("mouseover", (e) => {
+    const btn = e.target.closest(".star-picker__star");
+    if (!btn) return;
+    paint(Number(btn.dataset.star));
+  });
+
+  picker?.addEventListener("mouseleave", () => paint(selected));
+</script>

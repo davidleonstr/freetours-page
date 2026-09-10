@@ -1,0 +1,316 @@
+---
+// components/ReviewFormCard.astro
+//
+// El formulario de "Deja tu reseña" (selector de ruta opcional + estrellas +
+// comentario + botón + fetch de envío) estaba triplicado, casi idéntico,
+// en:
+//   - components/Tours.astro          (home: selector de ruta, grid #reviews)
+//   - pages/reseñas.astro              (hub de reseñas: selector de ruta,
+//                                        grid #reviews-grid con paginación/filtro)
+//   - pages/tours/[id].astro           (página de una ruta: sin selector,
+//                                        ruta fija, grid #reviews-grid)
+//
+// Este componente cubre los 3 casos con props. Depende de StarPicker.astro
+// (créalo primero si no lo tienes) — ver mensaje anterior.
+
+import StarPicker from "./StarPicker.astro";
+
+interface TourOption {
+  id: string;
+  name: string;
+}
+
+interface Props {
+  /** Si se pasa, se muestra un <select> para elegir la ruta a reseñar. */
+  tours?: TourOption[];
+  /** Ruta fija — úsalo en vez de `tours` cuando el formulario vive dentro
+   *  de la página de una única ruta (p. ej. tours/[id].astro). */
+  tourId?: string;
+  /** Id del contenedor donde se inserta la nueva reseña tras publicarla. */
+  gridSelector?: string;
+  /** Clase con la que se crea el contenedor si todavía no existe en el DOM
+   *  (caso de "0 reseñas" en tours/[id].astro). */
+  gridClass?: string;
+  /** Id del aviso "todavía no hay reseñas" que se quita al publicar. */
+  emptyNoticeSelector?: string;
+  /** Si es false, no se inserta la tarjeta en vivo (úsalo en páginas con
+   *  filtro/paginación propios, como reseñas.astro, donde insertar a mano
+   *  rompería esa lógica). */
+  liveUpdate?: boolean;
+  /** Si la tarjeta insertada debe mostrar el nombre de la ruta (útil en
+   *  páginas donde se listan reseñas de varias rutas a la vez). */
+  showTourNameInCard?: boolean;
+  title?: string;
+  hint?: string;
+  doneMessage?: string;
+  formId?: string;
+}
+
+const {
+  tours,
+  tourId,
+  gridSelector = "reviews-grid",
+  gridClass = "tours__grid",
+  emptyNoticeSelector = "reviews-empty-notice",
+  liveUpdate = true,
+  showTourNameInCard = false,
+  title = "Deja tu reseña",
+  hint,
+  doneMessage = "¡Gracias! Tu reseña se ha publicado.",
+  formId = "review-form-card",
+} = Astro.props;
+---
+
+<div class="review-form-card" id={formId}>
+  <h3 class="review-form-card__title">{title}</h3>
+  {hint && <p class="review-form-card__hint">{hint}</p>}
+
+  <form id="review-form" novalidate>
+    {tours && (
+      <div class="field">
+        <label for="review-tour">Ruta<em>*</em></label>
+        <select id="review-tour" name="tour_id" required>
+          <option value="" selected disabled>Elige la ruta que quieres reseñar…</option>
+          {tours.map((t) => (
+            <option value={t.id}>{t.name}</option>
+          ))}
+        </select>
+      </div>
+    )}
+
+    <StarPicker />
+
+    <div class="field">
+      <label for="review-content">Comentario <span class="field__optional">(opcional)</span></label>
+      <textarea id="review-content" name="content" rows="4" maxlength="5000"></textarea>
+    </div>
+
+    <p class="review-form-error is-hidden" id="review-form-error" role="alert"></p>
+    <button type="submit" class="btn orange-btn" id="review-submit">Publicar reseña</button>
+  </form>
+</div>
+
+<style is:global>
+  .review-form-card {
+    background: var(--cream);
+    border: 1px solid rgba(24, 34, 25, 0.1);
+    border-top: 3px solid var(--gold);
+    border-radius: var(--radius);
+    padding: 26px 26px 28px;
+    max-width: 560px;
+  }
+  .review-form-card__title {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: var(--ink);
+    margin: 0 0 6px;
+  }
+  .review-form-card__hint {
+    font-size: 0.85rem;
+    color: #5a6b5c;
+    margin: 0 0 18px;
+  }
+  .review-form-card .field { margin-bottom: 16px; }
+  .review-form-card label {
+    display: block;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #4a5b4c;
+    margin-bottom: 8px;
+  }
+  .review-form-card label em { font-style: normal; color: var(--russet); margin-left: 2px; }
+  .review-form-card .field__optional { font-weight: 400; color: #8a8272; }
+
+  .review-form-card select {
+    width: 100%;
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    color: var(--ink);
+    background: var(--cream);
+    border: 1px solid rgba(24, 34, 25, 0.22);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+  }
+  .review-form-card select:focus {
+    outline: none;
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px rgba(233, 151, 10, 0.16);
+  }
+
+  .review-form-card textarea {
+    width: 100%;
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    color: var(--ink);
+    background: var(--cream);
+    border: 1px solid rgba(24, 34, 25, 0.22);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    resize: vertical;
+  }
+  .review-form-card textarea:focus {
+    outline: none;
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px rgba(233, 151, 10, 0.16);
+  }
+
+  .review-form-error {
+    font-size: 0.85rem;
+    color: #7a2e1f;
+    background: rgba(158, 73, 54, 0.1);
+    border-left: 3px solid var(--russet);
+    padding: 10px 14px;
+    border-radius: var(--radius);
+    margin: 0 0 16px;
+  }
+  .review-form-error.is-hidden { display: none; }
+
+  /* Mensaje que sustituye al formulario tras publicar */
+  .review-cta {
+    background: var(--cream);
+    border: 1px dashed rgba(24, 34, 25, 0.18);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    font-size: 0.92rem;
+    color: #4a5b4c;
+    max-width: 560px;
+  }
+  .review-cta--done {
+    background: rgba(72, 122, 74, 0.1);
+    border-color: rgba(72, 122, 74, 0.3);
+    color: #2e5c30;
+  }
+
+  /* Badge de ruta en la tarjeta de reseña insertada en vivo */
+  .review-card__tour {
+    font-size: 0.78rem;
+    color: #8a8272;
+    margin: 2px 0 0;
+  }
+</style>
+
+<script
+  define:vars={{
+    fixedTourId: tourId ?? null,
+    gridSelector,
+    gridClass,
+    emptyNoticeSelector,
+    liveUpdate,
+    showTourNameInCard,
+    doneMessage,
+    formId,
+  }}
+>
+  const form = document.getElementById("review-form");
+
+  if (form) {
+    const tourSelect = document.getElementById("review-tour");
+    const contentInput = document.getElementById("review-content");
+    const errorEl = document.getElementById("review-form-error");
+    const submitBtn = document.getElementById("review-submit");
+    const formCard = document.getElementById(formId);
+
+    function showError(message) {
+      errorEl.textContent = message;
+      errorEl.classList.remove("is-hidden");
+    }
+    function clearError() {
+      errorEl.textContent = "";
+      errorEl.classList.add("is-hidden");
+    }
+    function escapeHtml(value) {
+      const div = document.createElement("div");
+      div.textContent = value ?? "";
+      return div.innerHTML;
+    }
+    function starsSvg(count) {
+      let out = "";
+      for (let i = 0; i < 5; i++) {
+        const filled = i < count;
+        out += `<svg viewBox="0 0 20 20" width="13" height="13" fill="${filled ? "var(--gold)" : "none"}" stroke="var(--gold)" stroke-width="${filled ? "0" : "1.4"}"><path d="M10 1.5l2.6 5.6 6.1.6-4.6 4.1 1.3 6-5.4-3.1-5.4 3.1 1.3-6-4.6-4.1 6.1-.6L10 1.5Z"/></svg>`;
+      }
+      return out;
+    }
+
+    function buildReviewCard(review, tourName) {
+      const div = document.createElement("div");
+      div.className = "review-card";
+      const quoteHtml = review.content
+        ? `<p class="review-card__quote">&ldquo;${escapeHtml(review.content)}&rdquo;</p>`
+        : "";
+      const tourHtml =
+        showTourNameInCard && tourName
+          ? `<p class="review-card__tour">${escapeHtml(tourName)}</p>`
+          : "";
+      div.innerHTML = `
+        <div class="review-card__stars" aria-label="${review.stars} de 5 estrellas">${starsSvg(review.stars)}</div>
+        ${quoteHtml}
+        <p class="review-card__reviewer">${escapeHtml(review.customer_name)}</p>
+        ${tourHtml}
+      `;
+      return div;
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      clearError();
+
+      const tourId = fixedTourId || tourSelect?.value;
+      if (!tourId) {
+        showError("Elige la ruta que quieres reseñar.");
+        return;
+      }
+
+      const starsInput = document.getElementById("star-picker-value");
+      const stars = Number(starsInput?.value || 0);
+      if (!stars) {
+        showError("Selecciona una puntuación.");
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Publicando…";
+
+      try {
+        const res = await fetch(`/api/tours/${tourId}/reviews`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            stars,
+            content: contentInput.value.trim() || undefined,
+          }),
+        });
+
+        const data = await res.json();
+        // El API sigue siendo la fuente de verdad sobre "ya has reseñado
+        // esta ruta" — un intento duplicado llega aquí como un error normal
+        // de formulario, igual que en las versiones originales.
+        if (!res.ok) throw new Error(data?.message || "No se ha podido publicar la reseña.");
+
+        if (liveUpdate) {
+          document.getElementById(emptyNoticeSelector)?.remove();
+
+          let grid = document.getElementById(gridSelector);
+          if (!grid) {
+            grid = document.createElement("div");
+            grid.className = gridClass;
+            grid.id = gridSelector;
+            formCard.closest(".wrap")?.appendChild(grid);
+          }
+
+          const tourName = tourSelect
+            ? tourSelect.options[tourSelect.selectedIndex]?.textContent ?? ""
+            : "";
+          grid.prepend(buildReviewCard(data, tourName));
+        }
+
+        formCard.outerHTML = `<div class="review-cta review-cta--done"><p>${doneMessage}</p></div>`;
+      } catch (err) {
+        showError(err?.message || "No se ha podido publicar la reseña.");
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Publicar reseña";
+      }
+    });
+  }
+</script>

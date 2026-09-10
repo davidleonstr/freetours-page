@@ -1,0 +1,41 @@
+---
+// components/StarRating.astro
+//
+// Muestra N estrellas (solo lectura). Sustituye:
+//   - el bucle de <svg> dentro de ReviewCard.astro
+//   - la función starsSvg() reimplementada en JS del lado del cliente en
+//     Tours.astro, reseñas.astro y tours/[id].astro para pintar las
+//     reseñas nuevas sin recargar la página.
+//
+// Uso: <StarRating stars={4} />  (o size={16} para una estrella más grande)
+
+interface Props {
+  stars: number;
+  max?: number;
+  size?: number;
+}
+
+const { stars, max = 5, size = 13 } = Astro.props;
+---
+
+<div class="star-rating" aria-label={`${stars} de ${max} estrellas`}>
+  {Array.from({ length: max }).map((_, i) => (
+    <svg
+      viewBox="0 0 20 20"
+      width={size}
+      height={size}
+      fill={i < stars ? "var(--gold)" : "none"}
+      stroke="var(--gold)"
+      stroke-width={i < stars ? "0" : "1.4"}
+    >
+      <path d="M10 1.5l2.6 5.6 6.1.6-4.6 4.1 1.3 6-5.4-3.1-5.4 3.1 1.3-6-4.6-4.1 6.1-.6L10 1.5Z"/>
+    </svg>
+  ))}
+</div>
+
+<style>
+  .star-rating {
+    display: flex;
+    gap: 3px;
+  }
+</style>

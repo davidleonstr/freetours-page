@@ -1,0 +1,132 @@
+---
+// components/AdminHeader.astro
+//
+// Reemplaza la cabecera <header class="admin-top">...</header> + el script
+// de logout, que estaban copiados en las 7 páginas de /admin: tours, dates,
+// images, schedules, reservations, stops y login.
+//
+// La barra de navegación era además inconsistente entre páginas (orden
+// distinto, algún enlace faltante, algunos sin data-tour para mantener el
+// filtro por ruta al navegar). Aquí queda centralizada y ya resalta el
+// enlace activo automáticamente.
+//
+// Uso típico (dentro de una página /admin/*):
+//   <AdminHeader tag="Panel de excursiones" tourId={selectedTourId} />
+//
+// `tourId` es opcional: si lo pasas, los enlaces a horarios/fechas/imágenes/
+// puntos incluyen ?tour=... para que el admin no pierda el contexto de la
+// ruta que está editando.
+
+interface Props {
+  tag: string;
+  tourId?: string;
+  backHref?: string;
+  backLabel?: string;
+}
+
+const { tag, tourId, backHref = "/", backLabel = "← Volver al sitio" } = Astro.props;
+
+const currentPath = Astro.url.pathname;
+const q = tourId ? `?tour=${tourId}` : "";
+
+const navLinks = [
+  { href: "/admin/reservations", label: "Reservas" },
+  { href: "/admin/tours", label: "Excursiones" },
+  { href: `/admin/schedules${q}`, label: "Horarios" },
+  { href: `/admin/dates${q}`, label: "Fechas" },
+  { href: `/admin/images${q}`, label: "Imagenes" },
+  { href: `/admin/stops${q}`, label: "Puntos" },
+];
+---
+
+<header class="admin-top">
+  <div class="wrap admin-top__row">
+    <a href="/" class="admin-top__logo"><em>Meriyo</em> Tours <em>Dublín</em></a>
+    <span class="admin-top__tag">{tag}</span>
+
+    <nav class="admin-top__nav">
+      {navLinks.map((l) => (
+        <a
+          href={l.href}
+          class={`admin-top__nav-link ${currentPath.startsWith(l.href.split("?")[0]) ? "admin-top__nav-link--active" : ""}`}
+        >
+          {l.label}
+        </a>
+      ))}
+    </nav>
+
+    <button type="button" class="admin-top__back admin-top__logout" id="admin-logout-btn">
+      Cerrar sesión
+    </button>
+    <a href={backHref} class="admin-top__back">{backLabel}</a>
+  </div>
+</header>
+
+<style is:global>
+  .admin-top {
+    background: var(--forest-deep);
+    border-bottom: 1px solid var(--line);
+  }
+  .admin-top__row {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding-block: 16px;
+  }
+  .admin-top__logo {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 1.05rem;
+    color: var(--cream);
+  }
+  .admin-top__logo em { color: var(--gold); }
+  .admin-top__tag {
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--gold-soft);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 4px 12px;
+    white-space: nowrap;
+  }
+  .admin-top__nav {
+    margin-left: auto;
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .admin-top__nav-link {
+    font-size: 0.85rem;
+    color: var(--parchment-alt);
+  }
+  .admin-top__nav-link:hover { color: var(--gold-soft); }
+  .admin-top__nav-link--active {
+    color: var(--gold-soft);
+    text-decoration: underline;
+  }
+  .admin-top__back {
+    font-size: 0.85rem;
+    color: var(--parchment-alt);
+  }
+  .admin-top__back:hover { color: var(--gold-soft); }
+  .admin-top__logout {
+    background: none;
+    border: none;
+    font-family: inherit;
+    cursor: pointer;
+    padding: 0;
+  }
+
+  @media (max-width: 640px) {
+    .admin-top__tag { display: none; }
+  }
+</style>
+
+<script>
+  document.getElementById("admin-logout-btn")?.addEventListener("click", async () => {
+    await fetch("/api/admin/logout", { method: "POST" });
+    window.location.href = "/admin/login";
+  });
+</script>

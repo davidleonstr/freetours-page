@@ -1,0 +1,86 @@
+---
+// components/SiteFooter.astro
+//
+// Reemplaza el bloque <footer class="site-footer">...</footer> que estaba
+// copiado y pegado (con pequeñas variaciones) en: index.astro, reservar.astro,
+// 404.astro, proximamente.astro, reserva-confirmada.astro, reseñas.astro y
+// mi-reserva/[id].astro.
+//
+// Prop `showLegalLinks`: en páginas "internas" (404, próximamente,
+// confirmación) el footer original solo mostraba el copyright, sin los
+// enlaces a condiciones/privacidad/cookies. Con esta prop controlas eso
+// sin duplicar el componente.
+
+import SocialLinks from "./SocialLinks.astro";
+
+interface Props {
+  showLegalLinks?: boolean;
+}
+
+const { showLegalLinks = true } = Astro.props;
+---
+
+<footer class="site-footer" id="sobre-mi">
+  <div class="wrap site-footer__row">
+    <div>
+      <p class="site-footer__logo"><em>Meriyo</em> Tours <em>Dublín</em></p>
+      <p class="site-footer__text">
+        Dublín que no sale en las postales. Free tours con reserva anticipada.
+      </p>
+    </div>
+
+    {showLegalLinks && <SocialLinks size={18} className="footer__social" />}
+
+    {showLegalLinks ? (
+      <div class="display-legal-items">
+        <a href="/condiciones-reserva" class="site-footer__copy">Condiciones de reserva</a>
+        <a href="/politicas-privacidad" class="site-footer__copy">Políticas de privacidad</a>
+        <a href="/politicas-cookies" class="site-footer__copy">Políticas de cookies</a>
+        <p class="site-footer__copy">© {new Date().getFullYear()} Meriyo Tours (Dublin)</p>
+      </div>
+    ) : (
+      <p class="site-footer__copy">© {new Date().getFullYear()} Meriyo Tours (Dublin)</p>
+    )}
+  </div>
+</footer>
+
+<style is:global>
+  .display-legal-items {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .site-footer {
+    background: var(--forest-deep);
+    color: var(--parchment-alt);
+    padding-block: 40px;
+    border-top: 1px solid var(--line);
+  }
+  .site-footer__row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .site-footer__logo {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 1.05rem;
+    color: var(--cream);
+    margin: 0 0 8px;
+  }
+  .site-footer__logo em { color: var(--gold); }
+  .site-footer__text {
+    max-width: 46ch;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: var(--parchment-alt);
+    margin: 0;
+  }
+  .site-footer__copy {
+    font-size: 0.78rem;
+    color: rgba(242, 234, 215, 0.6);
+    margin: 0;
+  }
+</style>
