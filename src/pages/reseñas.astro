@@ -1,6 +1,5 @@
 ---
 import Nav from "@/components/Nav.astro";
-import WhatsAppButton from "@/components/WhatsAppButton.astro";
 import ReviewCard from "@/components/ReviewCard.astro";
 import {
   getTours,
@@ -178,62 +177,59 @@ const canShowForm = !!currentCustomer && tours.length > 0;
         </div>
       </section>
 
-      {!reviewsError && (
+    {!reviewsError && canShowForm && (
         <section class="reviews-hub-form-section">
           <div class="wrap">
-            {canShowForm && (
-              <div class="review-form-card" id="review-form-card">
-                <h3 class="review-form-card__title">Deja tu reseña</h3>
-                <p class="review-form-card__hint">
-                  Elige la ruta que quieres reseñar.
-                </p>
-                <form id="review-form" novalidate>
-                  <div class="field">
-                    <label for="review-tour">Ruta<em>*</em></label>
-                    <select id="review-tour" name="tour_id" required>
-                      <option value="" selected disabled>
-                        Elige la ruta que quieres reseñar…
-                      </option>
-                      {tours.map((t) => (
-                        <option value={t.id}>{t.name}</option>
-                      ))}
-                    </select>
+            <div class="review-form-card" id="review-form-card">
+              <h3 class="review-form-card__title">Deja tu reseña</h3>
+              <p class="review-form-card__hint">
+                Elige la ruta que quieres reseñar.
+              </p>
+              <form id="review-form" novalidate>
+                <div class="field">
+                  <label for="review-tour">Ruta<em>*</em></label>
+                  <select id="review-tour" name="tour_id" required>
+                    <option value="" selected disabled>
+                      Elige la ruta que quieres reseñar…
+                    </option>
+                    {tours.map((t) => (
+                      <option value={t.id}>{t.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div class="field">
+                  <label id="star-picker-label">Puntuación<em>*</em></label>
+                  <div
+                    class="star-picker"
+                    id="star-picker"
+                    role="radiogroup"
+                    aria-labelledby="star-picker-label"
+                  >
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <button
+                        type="button"
+                        class="star-picker__star"
+                        data-star={n}
+                        aria-label={`${n} estrellas`}
+                      >
+                        ★
+                      </button>
+                    ))}
                   </div>
-                  <div class="field">
-                    <label id="star-picker-label">Puntuación<em>*</em></label>
-                    <div
-                      class="star-picker"
-                      id="star-picker"
-                      role="radiogroup"
-                      aria-labelledby="star-picker-label"
-                    >
-                      {[1, 2, 3, 4, 5].map((n) => (
-                        <button
-                          type="button"
-                          class="star-picker__star"
-                          data-star={n}
-                          aria-label={`${n} estrellas`}
-                        >
-                          ★
-                        </button>
-                      ))}
-                    </div>
-                    <input type="hidden" id="review-stars" name="stars" />
-                  </div>
-                  <div class="field">
-                    <label for="review-content">
-                      Comentario <span class="field__optional">(opcional)</span>
-                    </label>
-                    <textarea id="review-content" name="content" rows="4" maxlength="5000"></textarea>
-                  </div>
-                  <p class="review-form-error is-hidden" id="review-form-error" role="alert"></p>
-                  <button type="submit" class="btn orange-btn" id="review-submit">
-                    Publicar reseña
-                  </button>
-                </form>
-              </div>
-            )}
-
+                  <input type="hidden" id="review-stars" name="stars" />
+                </div>
+                <div class="field">
+                  <label for="review-content">
+                    Comentario <span class="field__optional">(opcional)</span>
+                  </label>
+                  <textarea id="review-content" name="content" rows="4" maxlength="5000"></textarea>
+                </div>
+                <p class="review-form-error is-hidden" id="review-form-error" role="alert"></p>
+                <button type="submit" class="btn orange-btn" id="review-submit">
+                  Publicar reseña
+                </button>
+              </form>
+            </div>
           </div>
         </section>
       )}
